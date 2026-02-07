@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrainCircuit, ArrowRight, BarChart3, PieChart, TrendingUp, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PortalHero: React.FC = () => {
   return (
@@ -28,11 +29,15 @@ const PortalHero: React.FC = () => {
               Convertimos datos complejos en decisiones precisas que impulsan eficiencia, rentabilidad y visión a largo plazo.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-5 pt-4">
-              <button className="px-8 py-4 rounded-xl bg-[#10B981] text-[#0A0E27] font-bold text-xs uppercase tracking-[0.2em] hover:brightness-110 transition-all flex items-center justify-center gap-3 group">
-                Explorar Soluciones
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </button>
+            <div className="flex flex-wrap gap-4">
+  {/* BOTÓN CONECTADO A SOLUCIONES */}
+  <Link 
+    to="/soluciones" 
+    className="px-8 py-4 bg-[#10B981] text-[#020617] font-bold rounded-xl flex items-center gap-2 hover:bg-[#0da673] transition-all group uppercase tracking-widest text-sm"
+  >
+    Explorar Soluciones
+    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+  </Link>
               <button className="px-8 py-4 rounded-xl border border-white/10 bg-white/5 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/10 transition-all">
                 Nuestra Tecnología
               </button>
