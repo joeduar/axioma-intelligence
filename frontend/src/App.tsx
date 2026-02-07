@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Brain, Cpu, BarChart3, ArrowRight } from 'lucide-react';
+import { Brain, Cpu, BarChart3, ArrowRight, Zap, Factory } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Importaciones de tus componentes base
+// Componentes base
 import Navbar from './components/Navbar';
 import PortalHero from './components/PortalHero'; 
 import PillarsSection from './components/PillarsSection';
@@ -12,52 +12,51 @@ import InnovationFramework from './components/InnovationFramework';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 
-// --- COMPONENTE DE ANIMACIÓN ---
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
-    initial={{ opacity: 0, y: 10 }}
+    initial={{ opacity: 0, y: 15 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -10 }}
-    transition={{ duration: 0.4, ease: "easeInOut" }}
+    exit={{ opacity: 0, y: -15 }}
+    transition={{ duration: 0.5 }}
   >
     {children}
   </motion.div>
 );
 
-// --- PÁGINA DE SOLUCIONES (CONTENIDO RESTAURADO) ---
+// --- PÁGINA DE SOLUCIONES (TARJETAS RESTAURADAS) ---
 const SolucionesPage = () => {
   const services = [
     {
       title: "Análisis Predictivo",
-      desc: "Modelos avanzados de Machine Learning para anticipar tendencias de mercado y comportamientos operativos.",
+      desc: "Modelos de Machine Learning diseñados para anticipar tendencias críticas y optimizar la toma de decisiones.",
       icon: <BarChart3 className="w-8 h-8 text-[#10B981]" />,
     },
     {
-      title: "Automatización Inteligente",
-      desc: "Optimización de flujos de trabajo mediante agentes de IA que reducen costos y errores humanos.",
+      title: "Automatización IA",
+      desc: "Implementación de agentes inteligentes que optimizan flujos operativos y reducen la carga administrativa.",
       icon: <Cpu className="w-8 h-8 text-[#10B981]" />,
     },
     {
-      title: "Consultoría Estratégica",
-      desc: "Acompañamiento en la integración de arquitectura de datos para escalabilidad y eficiencia global.",
+      title: "Estrategia de Datos",
+      desc: "Arquitectura avanzada para la gestión de datos, garantizando escalabilidad y soberanía tecnológica.",
       icon: <Brain className="w-8 h-8 text-[#10B981]" />,
     }
   ];
 
   return (
-    <div className="relative min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
-      <div className="max-w-7xl mx-auto relative z-10 text-center">
-        <h1 className="text-5xl md:text-6xl font-black mb-12 text-white uppercase tracking-tighter">
+    <div className="min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-5xl md:text-6xl font-black mb-16 text-white text-center uppercase tracking-tighter">
           Nuestras <span className="text-[#10B981]">Soluciones</span>
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((s, i) => (
-            <div key={i} className="p-8 rounded-3xl bg-[#0a192f]/40 border border-[#10B981]/10 backdrop-blur-xl hover:border-[#10B981]/40 transition-all group">
+            <div key={i} className="p-10 rounded-3xl bg-[#0a192f]/40 border border-[#10B981]/10 backdrop-blur-xl hover:border-[#10B981]/40 transition-all group">
               <div className="mb-6 p-4 bg-[#020617]/50 rounded-2xl w-fit">{s.icon}</div>
-              <h3 className="text-2xl font-bold mb-4 text-white uppercase tracking-tight">{s.title}</h3>
+              <h3 className="text-2xl font-bold mb-4 text-white uppercase">{s.title}</h3>
               <p className="text-slate-400 mb-8 leading-relaxed">{s.desc}</p>
-              <div className="flex items-center gap-2 text-[#10B981] text-xs font-bold uppercase tracking-[0.2em]">
-                Explorar <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-center gap-2 text-[#10B981] text-xs font-bold uppercase tracking-widest">
+                Saber más <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           ))}
@@ -67,52 +66,42 @@ const SolucionesPage = () => {
   );
 };
 
-// --- PÁGINA DE SECTORES (CONTENIDO RESTAURADO) ---
+// --- PÁGINA DE SECTORES (INFORMACIÓN RESTAURADA) ---
 const SectoresPage = () => {
   const sectors = [
     {
       title: "Oil & Gas",
-      focus: "Upstream Optimization",
-      desc: "Optimización de reservorios y análisis sísmico mediante redes neuronales profundas.",
-      icon: "🛢️",
-      stats: "25% Eficiencia"
+      focus: "Optimización de Reservorios",
+      desc: "Aplicamos IA para el análisis sísmico y la eficiencia en la producción de hidrocarburos.",
+      icon: <Factory className="w-10 h-10 text-[#10B981]" />,
+      tag: "Eficiencia Upstream"
     },
     {
-      title: "Energías Renovables",
-      focus: "Smart Grid Systems",
-      desc: "Algoritmos de balanceo de carga y predicción de demanda en tiempo real para redes eléctricas.",
-      icon: "⚡",
-      stats: "99.9% Estabilidad"
-    },
-    {
-      title: "Manufactura Pesada",
-      focus: "Predictive Integrity",
-      desc: "Sistemas de visión artificial para detectar fallas estructurales antes de que ocurran.",
-      icon: "🏭",
-      stats: "-40% Downtime"
+      title: "Energía",
+      focus: "Smart Grids",
+      desc: "Sistemas inteligentes para el balanceo de carga y predicción de demanda energética.",
+      icon: <Zap className="w-10 h-10 text-[#10B981]" />,
+      tag: "Estabilidad de Red"
     }
   ];
 
   return (
-    <div className="relative min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
-      <div className="max-w-7xl mx-auto relative z-10">
+    <div className="min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-16">
-          <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-[10px] mb-4">Verticales de Industria</h2>
-          <h1 className="text-5xl md:text-6xl font-black text-white uppercase tracking-tighter">
-            Sectores <span className="text-[#10B981]">Estratégicos</span>
+          <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-[10px] mb-4 text-center">Verticales Estratégicas</h2>
+          <h1 className="text-5xl md:text-6xl font-black text-white text-center uppercase tracking-tighter">
+            Sectores <span className="text-[#10B981]">Clave</span>
           </h1>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {sectors.map((s, i) => (
-            <div key={i} className="group p-10 rounded-3xl bg-[#0a192f]/30 border border-[#10B981]/10 backdrop-blur-xl hover:border-[#10B981]/40 transition-all flex flex-col md:flex-row gap-8 items-start">
-              <div className="text-6xl filter drop-shadow-[0_0_15px_rgba(16,185,129,0.2)]">{s.icon}</div>
+            <div key={i} className="group p-12 rounded-3xl bg-[#0a192f]/30 border border-[#10B981]/10 backdrop-blur-xl flex flex-col md:flex-row gap-8 items-center text-center md:text-left">
+              <div className="p-6 bg-[#020617]/50 rounded-full">{s.icon}</div>
               <div>
-                <span className="inline-block px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold uppercase tracking-widest mb-4">
-                  {s.stats}
-                </span>
-                <h3 className="text-3xl font-bold text-white mb-1 uppercase tracking-tight">{s.title}</h3>
-                <h4 className="text-[#10B981] text-xs font-bold mb-4 uppercase tracking-[0.2em]">{s.focus}</h4>
+                <span className="text-[#10B981] text-[10px] font-bold uppercase tracking-widest block mb-2">{s.tag}</span>
+                <h3 className="text-3xl font-bold text-white mb-2 uppercase">{s.title}</h3>
+                <h4 className="text-slate-300 text-sm font-medium mb-4">{s.focus}</h4>
                 <p className="text-slate-400 leading-relaxed">{s.desc}</p>
               </div>
             </div>
@@ -123,7 +112,6 @@ const SectoresPage = () => {
   );
 };
 
-// --- MANEJADOR DE RUTAS ---
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
@@ -131,16 +119,7 @@ const AnimatedRoutes = () => {
       <Navbar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={
-            <PageTransition>
-              <main>
-                <PortalHero />
-                <PillarsSection />
-                <SectorFocus />
-                <InnovationFramework />
-              </main>
-            </PageTransition>
-          } />
+          <Route path="/" element={<PageTransition><main><PortalHero /><PillarsSection /><SectorFocus /><InnovationFramework /></main></PageTransition>} />
           <Route path="/soluciones" element={<PageTransition><SolucionesPage /></PageTransition>} />
           <Route path="/sectores" element={<PageTransition><SectoresPage /></PageTransition>} />
         </Routes>
@@ -150,10 +129,8 @@ const AnimatedRoutes = () => {
   );
 };
 
-// --- APP ---
 export default function App() {
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(timer);
