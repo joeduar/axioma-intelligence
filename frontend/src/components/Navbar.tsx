@@ -1,71 +1,99 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Importante para navegar
+import { Link } from 'react-router-dom'; // Importante para la navegación sin recarga
+import { Menu, X, Brain } from 'lucide-react';
 
-interface NavbarProps {
-  onLoginClick?: () => void; // El signo ? lo hace opcional
-}
-
-const Navbar: React.FC<NavbarProps> = ({ onLoginClick }) => {
+const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4 ${
-      isScrolled ? 'bg-[#0A0E27]/90 backdrop-blur-md border-b border-white/5' : 'bg-transparent'
-    }`}>
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        
-        {/* Logo que vuelve al Inicio */}
-        <Link to="/" className="flex items-center gap-4 group cursor-pointer">
-          <div className="flex items-center justify-center shrink-0">
-            <img 
-              src="/favicon.png" 
-              alt="Axioma Logo" 
-              className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform group-hover:scale-105"
-            />
+    <nav 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled ? 'py-4 bg-[#020617]/80 backdrop-blur-xl border-b border-[#10B981]/10' : 'py-6 bg-transparent'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="relative">
+            <Brain className="w-10 h-10 text-[#10B981] transition-transform duration-500 group-hover:rotate-[360deg]" />
+            <div className="absolute -inset-1 bg-[#10B981]/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <div className="flex flex-col justify-center leading-none">
-            <span className="text-white font-black tracking-tighter text-lg md:text-xl uppercase">
-              Axioma Ventures
+          <div>
+            <span className="text-xl font-black tracking-tighter text-white block leading-none">
+              AXIOMA VENTURES
             </span>
-            <span className="text-[#10B981] font-bold tracking-[0.15em] text-[10px] md:text-[11px] uppercase mt-0.5">
+            <span className="text-[10px] font-bold tracking-[0.3em] text-[#10B981] uppercase">
               Intelligence
             </span>
           </div>
         </Link>
 
-        {/* Navegación Desktop */}
+        {/* Desktop Navigation - Sin el botón de Portal */}
         <div className="hidden md:flex items-center gap-10">
-          <Link to="/soluciones" className="text-white/50 hover:text-[#10B981] text-[10px] font-medium uppercase tracking-[0.3em] transition-all">
+          <Link 
+            to="/soluciones" 
+            className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase"
+          >
             Soluciones
           </Link>
-          <Link to="/" className="text-white/50 hover:text-[#10B981] text-[10px] font-medium uppercase tracking-[0.3em] transition-all">
+          <Link 
+            to="/sectores" 
+            className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase"
+          >
             Sectores
           </Link>
-          <Link to="/" className="text-white/50 hover:text-[#10B981] text-[10px] font-medium uppercase tracking-[0.3em] transition-all">
+          <Link 
+            to="/contacto" 
+            className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase"
+          >
             Contacto
           </Link>
-          
-          <button 
-            onClick={onLoginClick}
-            className="px-5 py-2 rounded-lg border border-[#10B981]/30 bg-[#10B981]/5 text-[#10B981] text-[9px] font-bold uppercase tracking-[0.2em] hover:bg-[#10B981] hover:text-[#0A0E27] transition-all"
-          >
-            Portal Acceso
-          </button>
         </div>
 
-        {/* Botón Móvil */}
-        <button className="md:hidden text-white/70" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        {/* Mobile Menu Button */}
+        <button 
+          className="md:hidden text-white"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? <X /> : <Menu />}
         </button>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="absolute top-full left-0 right-0 bg-[#020617] border-b border-[#10B981]/10 p-6 flex flex-col gap-6 md:hidden animate-in fade-in slide-in-from-top-4">
+          <Link 
+            to="/soluciones" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="text-sm font-bold tracking-widest text-gray-400 hover:text-[#10B981]"
+          >
+            SOLUCIONES
+          </Link>
+          <Link 
+            to="/sectores" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="text-sm font-bold tracking-widest text-gray-400 hover:text-[#10B981]"
+          >
+            SECTORES
+          </Link>
+          <Link 
+            to="/contacto" 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="text-sm font-bold tracking-widest text-gray-400 hover:text-[#10B981]"
+          >
+            CONTACTO
+          </Link>
+        </div>
+      )}
     </nav>
   );
 };

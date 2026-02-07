@@ -107,7 +107,7 @@ const AnimatedRoutes = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] selection:bg-[#10B981]/30 text-white">
-      <Navbar onLoginClick={() => setIsAuthModalOpen(true)} />
+      
       
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
