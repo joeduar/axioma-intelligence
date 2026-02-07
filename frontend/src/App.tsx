@@ -16,36 +16,58 @@ const SolucionesPage = () => {
   const services = [
     {
       title: "Análisis Predictivo",
-      desc: "Modelos avanzados de Machine Learning para anticipar tendencias de mercado.",
+      desc: "Modelos avanzados de Machine Learning para anticipar tendencias de mercado y comportamientos operativos.",
       icon: <BarChart3 className="w-8 h-8 text-cyan-400" />,
-      color: "border-cyan-500/30"
+      color: "border-cyan-500/20"
     },
     {
       title: "Automatización Inteligente",
-      desc: "Optimización de flujos de trabajo mediante agentes de IA especializados.",
+      desc: "Optimización de flujos de trabajo mediante agentes de IA que reducen costos y errores humanos.",
       icon: <Cpu className="w-8 h-8 text-[#10B981]" />,
-      color: "border-[#10B981]/30"
+      color: "border-[#10B981]/20"
     },
     {
       title: "Consultoría Estratégica",
-      desc: "Acompañamiento en la integración de cultura Data-Driven y arquitectura de datos.",
+      desc: "Acompañamiento en la integración de arquitectura de datos para escalabilidad y eficiencia global.",
       icon: <Brain className="w-8 h-8 text-purple-400" />,
-      color: "border-purple-500/30"
+      color: "border-purple-500/20"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-40 pb-20 px-6">
-      <div className="max-w-7xl mx-auto text-center">
-        <h1 className="text-5xl font-black mb-12">Nuestras <span className="text-[#10B981]">Soluciones</span></h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+    // Quitamos el bg-[#050505] sólido y usamos un gradiente que fluya con el fondo general
+    <div className="relative min-h-screen pt-40 pb-20 px-6 bg-gradient-to-b from-black via-[#0a0a0a] to-black">
+      {/* Efecto de luz de fondo para quitar la sensación de "todo negro" */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#10B981]/5 blur-[120px] pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-20">
+          <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-xs mb-4">Servicios de Élite</h2>
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter mb-6 bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
+            Nuestras <span className="text-[#10B981]">Soluciones</span>
+          </h1>
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+            Impulsamos la eficiencia operativa mediante tecnología disruptiva diseñada para el sector energético.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((s, i) => (
-            <div key={i} className={`p-8 rounded-2xl bg-white/5 border ${s.color} backdrop-blur-sm hover:bg-white/10 transition-all`}>
-              <div className="mb-4">{s.icon}</div>
-              <h3 className="text-xl font-bold mb-2">{s.title}</h3>
-              <p className="text-gray-400 text-sm mb-6">{s.desc}</p>
-              <div className="flex items-center gap-2 text-[#10B981] text-xs font-bold uppercase tracking-widest cursor-pointer">
-                Saber más <ArrowRight size={14} />
+            <div 
+              key={i} 
+              className={`group p-8 rounded-3xl bg-white/[0.03] border ${s.color} backdrop-blur-md hover:bg-white/[0.06] transition-all duration-500 hover:-translate-y-2`}
+            >
+              <div className="mb-6 p-4 bg-black/50 rounded-2xl w-fit group-hover:scale-110 transition-transform">
+                {s.icon}
+              </div>
+              <h3 className="text-2xl font-bold mb-4 text-white">
+                {s.title}
+              </h3>
+              <p className="text-gray-400 leading-relaxed mb-8">
+                {s.desc}
+              </p>
+              <div className="flex items-center gap-2 text-[#10B981] text-xs font-bold uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+                Explorar Solución <ArrowRight size={14} />
               </div>
             </div>
           ))}
@@ -54,7 +76,6 @@ const SolucionesPage = () => {
     </div>
   );
 };
-
 function App() {
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
