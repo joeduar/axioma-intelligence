@@ -23,7 +23,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-// --- PÁGINA DE SOLUCIONES (TARJETAS RESTAURADAS) ---
+// --- PÁGINA DE SOLUCIONES ---
 const SolucionesPage = () => {
   const services = [
     {
@@ -66,7 +66,7 @@ const SolucionesPage = () => {
   );
 };
 
-// --- PÁGINA DE SECTORES (INFORMACIÓN RESTAURADA) ---
+// --- PÁGINA DE SECTORES ---
 const SectoresPage = () => {
   const sectors = [
     {
@@ -112,46 +112,47 @@ const SectoresPage = () => {
   );
 };
 
+// --- COMPONENTE DE RUTAS ---
 const AnimatedRoutes = () => {
   const location = useLocation();
+
   return (
-    <div className="min-h-screen bg-[#020617]">
+    <div className="min-h-screen bg-[#020617] selection:bg-[#10B981]/30 text-white flex flex-col">
       <Navbar />
-      <AnimatePresence mode="wait">
-  <Routes location={location} key={location.pathname}>
-    <Route path="/" element={
-      <PageTransition>
-        <main>
-          <PortalHero />
-          <PillarsSection />
-          <SectorFocus />
-          <InnovationFramework />
-        </main>
-      </PageTransition>
-    } />
-    <Route path="/soluciones" element={<PageTransition><SolucionesPage /></PageTransition>} />
-    <Route path="/sectores" element={<PageTransition><SectoresPage /></PageTransition>} />
-    
-    {/* MODIFICACIÓN: En lugar de cargar el footer solo, redirigimos a la Home con animación */}
-    <Route path="/contacto" element={
-      <PageTransition>
-        <main>
-          <PortalHero />
-          <PillarsSection />
-          <SectorFocus />
-          <InnovationFramework />
-          {/* Al entrar aquí, la animación sutil se ejecutará igual que en las otras páginas */}
-        </main>
-      </PageTransition>
-    } />
-  </Routes>
-</AnimatePresence>
+      
+      <div className="flex-grow">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={
+              <PageTransition>
+                <main>
+                  <PortalHero />
+                  <PillarsSection />
+                  <SectorFocus />
+                  <InnovationFramework />
+                </main>
+              </PageTransition>
+            } />
+            <Route path="/soluciones" element={<PageTransition><SolucionesPage /></PageTransition>} />
+            <Route path="/sectores" element={<PageTransition><SectoresPage /></PageTransition>} />
+            <Route path="/contacto" element={
+              <PageTransition>
+                <main><PortalHero /><PillarsSection /><SectorFocus /><InnovationFramework /></main>
+              </PageTransition>
+            } />
+          </Routes>
+        </AnimatePresence>
+      </div>
+
+      <Footer />
     </div>
   );
 };
 
+// --- APP PRINCIPAL ---
 export default function App() {
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(timer);
