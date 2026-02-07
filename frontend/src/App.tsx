@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Brain, Cpu, BarChart3, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion'; // 1. Nueva Importación
 
 // Importaciones de tus componentes
 import Navbar from './components/Navbar';
@@ -12,24 +13,35 @@ import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import AuthModal from './components/AuthModal';
 
-// 1. DEFINICIÓN DE SOLUCIONES (Esto es lo que faltaba en tu captura)
+// 2. COMPONENTE DE ANIMACIÓN (Va aquí, fuera de App)
+const PageTransition = ({ children }: { children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.4, ease: "easeInOut" }}
+  >
+    {children}
+  </motion.div>
+);
+
 const SolucionesPage = () => {
   const services = [
     {
       title: "Análisis Predictivo",
-      desc: "Modelos avanzados de Machine Learning para anticipar tendencias de mercado y comportamientos operativos.",
+      desc: "Modelos avanzados de Machine Learning para anticipar tendencias de mercado.",
       icon: <BarChart3 className="w-8 h-8 text-[#10B981]" />,
       color: "border-[#10B981]/20"
     },
     {
       title: "Automatización Inteligente",
-      desc: "Optimización de flujos de trabajo mediante agentes de IA que reducen costos y errores humanos.",
+      desc: "Optimización de flujos de trabajo mediante agentes de IA especializados.",
       icon: <Cpu className="w-8 h-8 text-[#10B981]" />,
       color: "border-[#10B981]/20"
     },
     {
       title: "Consultoría Estratégica",
-      desc: "Acompañamiento en la integración de arquitectura de datos para escalabilidad y eficiencia global.",
+      desc: "Arquitectura de datos para escalabilidad y eficiencia global.",
       icon: <Brain className="w-8 h-8 text-[#10B981]" />,
       color: "border-[#10B981]/20"
     }
@@ -58,10 +70,48 @@ const SolucionesPage = () => {
   );
 };
 
-// 2. FUNCIÓN APP ÚNICA (Sin duplicados)
+// 3. COMPONENTE PARA MANEJAR LAS RUTAS ANIMADAS
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-[#020617] selection:bg-[#10B981]/30 text-white">
+      <Navbar onLoginClick={() => setIsAuthModalOpen(true)} />
+      
+      {/* AnimatePresence permite detectar cuando una página sale */}
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={
+            <PageTransition>
+              <main>
+                <PortalHero />
+                <PillarsSection />
+                <SectorFocus />
+                <InnovationFramework />
+              </main>
+            </PageTransition>
+          } />
+          <Route path="/soluciones" element={
+            <PageTransition>
+              <SolucionesPage />
+            </PageTransition>
+          } />
+        </Routes>
+      </AnimatePresence>
+
+      <Footer />
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onLoginSuccess={() => setIsAuthModalOpen(false)}
+      />
+    </div>
+  );
+};
+
 function App() {
   const [loading, setLoading] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
@@ -74,29 +124,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#020617] selection:bg-[#10B981]/30 text-white">
-        <Navbar onLoginClick={() => setIsAuthModalOpen(true)} />
-        
-        <Routes>
-          <Route path="/" element={
-            <main>
-              <PortalHero />
-              <PillarsSection />
-              <SectorFocus />
-              <InnovationFramework />
-            </main>
-          } />
-          <Route path="/soluciones" element={<SolucionesPage />} />
-        </Routes>
-
-        <Footer />
-        
-        <AuthModal 
-          isOpen={isAuthModalOpen} 
-          onClose={() => setIsAuthModalOpen(false)} 
-          onLoginSuccess={() => setIsAuthModalOpen(false)}
-        />
-      </div>
+      <AnimatedRoutes />
     </Router>
   );
 }
