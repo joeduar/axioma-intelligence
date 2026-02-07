@@ -28,7 +28,6 @@ const Navbar = () => {
             src="/favicon.png" 
             alt="Axioma Ventures Logo" 
             className="w-10 h-10 object-contain" 
-            /* Agregamos una pequeña sombra verde sutil para que resalte como en tu diseño */
             style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.3))' }}
           />
           <div className="flex flex-col">
@@ -49,7 +48,15 @@ const Navbar = () => {
           <Link to="/sectores" className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase">
             Sectores
           </Link>
-          <Link to="/contacto" className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase">
+          <Link 
+            to="/" 
+            onClick={() => {
+              setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              }, 500); 
+            }}
+            className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase"
+          >
             Contacto
           </Link>
         </div>
@@ -65,7 +72,18 @@ const Navbar = () => {
         <div className="absolute top-full left-0 right-0 bg-[#020617] border-b border-[#10B981]/10 p-6 flex flex-col gap-6 md:hidden">
           <Link to="/soluciones" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">SOLUCIONES</Link>
           <Link to="/sectores" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">SECTORES</Link>
-          <Link to="/contacto" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">CONTACTO</Link>
+          <Link 
+            to="/" 
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              }, 500);
+            }} 
+            className="text-sm font-bold tracking-widest text-gray-400"
+          >
+            CONTACTO
+          </Link>
         </div>
       )}
     </nav>
