@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrainCircuit, ArrowRight, BarChart3, PieChart, TrendingUp, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion'; // ESTA ES LA IMPORTACIÓN QUE FALTABA
 
 const PortalHero: React.FC = () => {
   return (
@@ -77,25 +78,51 @@ const PortalHero: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Gráfica Principal de Predicción */}
-                <div className="bg-white/[0.02] border border-white/5 p-5 rounded-xl space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-white font-bold uppercase tracking-widest opacity-40 text-white">Análisis Predictivo de Demanda</span>
-                    <PieChart size={14} className="text-[#10B981]/50" />
-                  </div>
-                  <div className="h-32 flex items-end gap-2">
-                    {[30, 45, 35, 60, 80, 55, 90, 75, 40, 65, 85, 95].map((h, i) => (
-                      <div key={i} className="flex-1 relative group">
-                        <div 
-                          className="w-full bg-[#10B981]/20 rounded-t-sm transition-all duration-700 group-hover:bg-[#10B981]/50" 
-                          style={{ height: `${h}%` }}
-                        ></div>
-                        {/* Línea de tendencia IA sutil */}
-                        <div className="absolute bottom-full mb-1 left-1/2 w-1 h-1 bg-[#10B981] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <div className="mt-8 p-6 bg-[#020617]/50 rounded-2xl border border-[#10B981]/5 h-64 relative overflow-hidden">
+  <div className="flex justify-between items-center mb-6">
+    <span className="text-[10px] font-bold tracking-[0.2em] text-[#10B981] uppercase">
+      Análisis Predictivo de Demanda
+    </span>
+    <div className="flex gap-1">
+      <div className="w-1 h-3 bg-[#10B981]/20 rounded-full" />
+      <div className="w-1 h-5 bg-[#10B981] rounded-full animate-pulse" />
+      <div className="w-1 h-4 bg-[#10B981]/40 rounded-full" />
+    </div>
+  </div>
+
+  {/* SIMULACIÓN DE GRÁFICO POWER BI / IA */}
+  <div className="flex items-end justify-between h-32 gap-2">
+    {[40, 70, 45, 90, 65, 80, 95, 75, 60, 85].map((height, i) => (
+      <motion.div
+        key={i}
+        initial={{ height: 0 }}
+        animate={{ height: `${height}%` }}
+        transition={{ duration: 1, delay: i * 0.1 }}
+        className="flex-1 bg-gradient-to-t from-[#10B981]/10 to-[#10B981]/40 rounded-t-sm relative group"
+      >
+        {/* Tooltip simulado al pasar el mouse */}
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#10B981] text-[#020617] text-[8px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+          {height}%
+        </div>
+      </motion.div>
+    ))}
+  </div>
+
+  {/* LÍNEA DE TENDENCIA (LÍNEA DE IA) */}
+  <svg className="absolute inset-x-0 bottom-12 h-20 w-full" preserveAspectRatio="none">
+    <motion.path
+      d="M0,40 Q150,10 300,50 T600,20 T900,40"
+      fill="none"
+      stroke="#10B981"
+      strokeWidth="2"
+      strokeDasharray="1000"
+      initial={{ strokeDashoffset: 1000 }}
+      animate={{ strokeDashoffset: 0 }}
+      transition={{ duration: 3, repeat: Infinity }}
+      className="opacity-50"
+    />
+  </svg>
+</div>
 
                 {/* Footer del Dashboard */}
                 <div className="flex justify-between items-center text-[9px] text-white/30 font-bold uppercase tracking-tighter">
