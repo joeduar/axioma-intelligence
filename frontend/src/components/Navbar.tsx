@@ -21,7 +21,7 @@ const Navbar = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        {/* LOGO RESTAURADO */}
+        {/* LOGO Y NOMBRE COMPLETO RESTAURADOS */}
         <Link to="/" className="flex items-center gap-3 group">
           <div className="relative">
             <Brain className="w-10 h-10 text-[#10B981]" />
@@ -32,12 +32,12 @@ const Navbar = () => {
               AXIOMA VENTURES
             </span>
             <span className="text-[10px] font-bold tracking-[0.3em] text-[#10B981] uppercase">
-              Intelligence
+              INTELLIGENCE
             </span>
           </div>
         </Link>
 
-        {/* NAVEGACIÓN DESKTOP - Solo links, sin portal */}
+        {/* NAVEGACIÓN DESKTOP - SIN BOTÓN PORTAL */}
         <div className="hidden md:flex items-center gap-10">
           <Link to="/soluciones" className="text-xs font-bold tracking-[0.2em] text-gray-400 hover:text-[#10B981] transition-colors uppercase">
             Soluciones
@@ -50,27 +50,17 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Botón menú móvil */}
-        <button 
-          className="md:hidden text-white"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
+        {/* MENÚ MÓVIL */}
+        <button className="md:hidden text-white" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Menú móvil restaurado */}
       {isMobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-[#020617] border-b border-[#10B981]/10 p-6 flex flex-col gap-6 md:hidden">
-          <Link to="/soluciones" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">
-            SOLUCIONES
-          </Link>
-          <Link to="/sectores" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">
-            SECTORES
-          </Link>
-          <Link to="/contacto" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">
-            CONTACTO
-          </Link>
+          <Link to="/soluciones" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">SOLUCIONES</Link>
+          <Link to="/sectores" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">SECTORES</Link>
+          <Link to="/contacto" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-bold tracking-widest text-gray-400">CONTACTO</Link>
         </div>
       )}
     </nav>
