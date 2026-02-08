@@ -19,9 +19,10 @@ const PortalHero: React.FC = () => {
               <span className="text-[10px] font-bold tracking-[0.2em] text-[#10B981] uppercase">Soberanía Tecnológica</span>
             </div>
             
-            <h1 className="text-6xl md:text-7xl font-black text-white leading-[0.9] mb-8 uppercase tracking-tighter">
+            {/* TAMAÑO DE FUENTE AJUSTADO: de 7xl a 5xl/6xl */}
+            <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.1] mb-8 uppercase tracking-tighter">
               Donde la IA se convierte en ventaja <br />
-              <span className="text-[#10B981]">Estrategica</span>
+              <span className="text-[#10B981]">Estratégica</span>
             </h1>
             
             <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed">
