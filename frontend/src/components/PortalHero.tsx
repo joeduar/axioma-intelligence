@@ -12,39 +12,39 @@ const PortalHero: React.FC = () => {
       <div className="max-w-7xl mx-auto w-full relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           
-          {/* Lado Izquierdo: Narrativa Estratégica */}
-          <div className="space-y-10">
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[#10B981]/5 border border-[#10B981]/10">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></div>
-              <span className="text-[#10B981] text-[10px] font-bold uppercase tracking-[0.3em]">
-                Soberanía Tecnológica
-              </span>
+          {/* LADO IZQUIERDO: CONTENIDO */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 mb-6">
+              <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="text-[10px] font-bold tracking-[0.2em] text-[#10B981] uppercase">Soberanía Tecnológica</span>
             </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.05]">
-              Inteligencia Artificial <br />
-              <span className="text-[#10B981]">Diseñada para crecer contigo</span>
+            
+            <h1 className="text-6xl md:text-7xl font-black text-white leading-[0.9] mb-8 uppercase tracking-tighter">
+              AXIOMA <br />
+              <span className="text-[#10B981]">Ventures Intelligence</span>
             </h1>
-
-            <p className="text-white text-lg leading-relaxed font-light max-w-xl opacity-80">
+            
+            <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed">
               Convertimos datos complejos en decisiones precisas que impulsan eficiencia, rentabilidad y visión a largo plazo.
             </p>
 
             <div className="flex flex-wrap gap-4">
-  {/* BOTÓN CONECTADO A SOLUCIONES */}
-  <Link 
-    to="/soluciones" 
-    className="px-8 py-4 bg-[#10B981] text-[#020617] font-bold rounded-xl flex items-center gap-2 hover:bg-[#0da673] transition-all group uppercase tracking-widest text-sm"
-  >
-    Explorar Soluciones
-    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-  </Link>
-              <button className="px-8 py-4 rounded-xl border border-white/10 bg-white/5 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/10 transition-all">
-                Nuestra Tecnología
-              </button>
+              <Link 
+                to="/soluciones" 
+                className="px-8 py-4 bg-[#10B981] text-[#020617] font-bold rounded-xl flex items-center gap-2 hover:bg-[#0da673] transition-all group uppercase tracking-widest text-sm"
+              >
+                Explorar Soluciones
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+
+              <Link 
+                to="/nosotros" 
+                className="px-8 py-4 bg-[#0a192f]/50 border border-[#10B981]/20 text-white font-bold rounded-xl hover:bg-[#10B981]/10 hover:border-[#10B981]/60 transition-all uppercase tracking-widest text-sm text-center"
+              >
+                Acerca de Nosotros
+              </Link>
             </div>
           </div>
-
           {/* Lado Derecho: Dashboard BI con IA Estilo Mac */}
           <div className="relative hidden lg:block">
             <div className="absolute -inset-4 bg-[#10B981]/10 blur-3xl rounded-full opacity-20"></div>
