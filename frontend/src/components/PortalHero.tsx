@@ -16,31 +16,31 @@ const PortalHero: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 mb-6">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="text-[10px] font-bold tracking-[0.2em] text-[#10B981] uppercase">Soberanía Tecnológica</span>
+              <span className="text-[10px] font-medium tracking-[0.3em] text-[#10B981] uppercase">Soberanía Tecnológica</span>
             </div>
             
-            {/* TAMAÑO DE FUENTE AJUSTADO: de 7xl a 5xl/6xl */}
-            <h1 className="text-4xl md:text-6xl font-black text-white leading-[1.1] mb-8 uppercase tracking-tighter">
-              Donde la IA se convierte en ventaja <br />
-              <span className="text-[#10B981]">Estratégica</span>
+            {/* TÍTULO: FUENTE LIGERA, PROFESIONAL Y LUXURY */}
+            <h1 className="text-4xl md:text-5xl font-light text-white leading-[1.2] mb-8 uppercase tracking-[0.05em]">
+              Donde la IA se convierte en <br />
+              <span className="text-[#10B981] font-normal italic">Ventaja Estratégica</span>
             </h1>
             
-            <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed">
+            <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed font-light tracking-wide">
               Convertimos datos complejos en decisiones precisas que impulsan eficiencia, rentabilidad y visión a largo plazo.
             </p>
 
             <div className="flex flex-wrap gap-4">
               <Link 
                 to="/soluciones" 
-                className="px-8 py-4 bg-[#10B981] text-[#020617] font-bold rounded-xl flex items-center gap-2 hover:bg-[#0da673] transition-all group uppercase tracking-widest text-sm"
+                className="px-9 py-4 bg-[#10B981] text-[#020617] font-medium rounded-full flex items-center gap-2 hover:bg-[#0da673] transition-all group uppercase tracking-[0.2em] text-[11px]"
               >
                 Explorar Soluciones
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
 
               <Link 
                 to="/nosotros" 
-                className="px-8 py-4 bg-[#0a192f]/50 border border-[#10B981]/20 text-white font-bold rounded-xl hover:bg-[#10B981]/10 hover:border-[#10B981]/60 transition-all uppercase tracking-widest text-sm text-center"
+                className="px-9 py-4 bg-transparent border border-white/20 text-white font-medium rounded-full hover:bg-white hover:text-[#020617] transition-all uppercase tracking-[0.2em] text-[11px] text-center"
               >
                 Acerca de Nosotros
               </Link>
