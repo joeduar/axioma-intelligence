@@ -20,8 +20,8 @@ const PortalHero: React.FC = () => {
             </div>
             
             <h1 className="text-6xl md:text-7xl font-black text-white leading-[0.9] mb-8 uppercase tracking-tighter">
-              AXIOMA <br />
-              <span className="text-[#10B981]">Ventures Intelligence</span>
+              Donde la IA se convierte en ventaja <br />
+              <span className="text-[#10B981]">Estrategica</span>
             </h1>
             
             <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed">

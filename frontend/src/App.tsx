@@ -125,13 +125,13 @@ const NosotrosPage = () => {
         
         <div className="space-y-8 text-lg text-slate-400 leading-relaxed text-left bg-[#0a192f]/30 p-10 rounded-3xl border border-[#10B981]/10 backdrop-blur-xl">
           <p>
-            En <span className="text-white font-bold">AXIOMA</span>, no solo implementamos tecnología; diseñamos el futuro operativo de las empresas. Nacimos como una respuesta a la complejidad de la era del dato, con la misión de democratizar el acceso a la Inteligencia Artificial de alto nivel.
+            Axioma Ventures Intelligence, C.A <span className="text-white font-bold"></span>, es una agencia de Inteligencia Artificial enfocada en transformar datos en decisiones estratégicas de alto impacto. Desarrollamos soluciones de IA como softwares, automatizaciones, estadísticas de análisis de datos, y Big Data con un enfoque en precisión algorítmica, innovación constante y crecimiento sostenible. 
           </p>
           <p>
-            Como agencia de IA, nos especializamos en construir <span className="text-[#10B981] font-medium">arquitecturas de inteligencia soberana</span>. Creemos que cada empresa debe ser dueña de su propia capacidad analítica, por lo que creamos soluciones que no solo optimizan, sino que aprenden y evolucionan con cada desafío.
+            También aportamos servicios de consultoría estratégica en base a analítica de negocios (Business Analytics).
           </p>
           <p>
-            Nuestro enfoque combina la precisión algorítmica con una visión estratégica humana, garantizando que cada línea de código se traduzca en una ventaja competitiva real y sostenible.
+            Trabajamos junto a empresas que buscan optimizar su rendimiento hoy mientras construyen ventajas competitivas a largo plazo.
           </p>
         </div>
       </div>
