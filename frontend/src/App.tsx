@@ -187,16 +187,17 @@ const AnimatedRoutes = () => {
   );
 };
 
-// --- APP PRINCIPAL ---
 export default function App() {
+  // Dejamos el estado en true permanentemente para el modo mantenimiento
   const [loading, setLoading] = useState(true);
 
+  // Eliminamos el setTimeout para que no se quite la pantalla de mantenimiento sola
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
+    // Aquí podrías poner lógica de carga de datos en el futuro
+    console.log("Axioma Intelligence - Modo Mantenimiento Activo");
   }, []);
 
-  if (loading) return <LoadingScreen onComplete={() => setLoading(false)} />;
+  if (loading) return <LoadingScreen />;
 
   return (
     <Router>
