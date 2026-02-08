@@ -79,7 +79,7 @@ const LoadingScreen: React.FC = () => {
         {/* FOOTER: TODO EN UNA SOLA LÍNEA */}
         <div className="flex flex-col items-center space-y-6 pt-10">
           <span className="text-[#10B981] text-[10px] font-bold tracking-[0.3em] uppercase">
-            LA IA ES EL FUTURO DEL MUNDO
+            ESTAMOS DESARROLLANDO LAS HERRAMIENTAS DEL PRESENTE PARA EL NUEVO FUTURO
           </span>
           <p className="text-white/20 text-[9px] font-medium tracking-[0.2em] uppercase whitespace-nowrap">
             AXIOMA VENTURES INTELLIGENCE C.A - TODOS LOS DERECHOS RESERVADOS © 2026
