@@ -48,11 +48,11 @@ const LoadingScreen: React.FC = () => {
         {/* NOMBRE DE LA MARCA - TIPOGRAFÍA ORIGINAL RECUPERADA */}
         <div className="space-y-4">
           <h1 className="text-white text-3xl md:text-4xl font-black tracking-[0.2em] uppercase leading-tight">
-            Axioma Ventures<br />
-            <span className="text-[#10B981]">Intelligence</span>
+            Axioma <br />
+            <span className="text-[#10B981]"> Ventures Intelligence</span>
           </h1>
           <p className="text-white/40 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase">
-            Inteligencia Artificial Aplicada
+            Inteligencia de Negocios AXIOMA
           </p>
         </div>
 
