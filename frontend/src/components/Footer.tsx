@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Linkedin, Twitter, MessageSquare } from 'lucide-react';
+import { Linkedin, Twitter, MessageSquare, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -31,14 +31,16 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* COLUMNA 2: CONTACTO */}
+           {/* Columna 2: Contacto */}
           <div>
-            <h4 className="text-white font-bold text-[10px] tracking-[0.3em] uppercase mb-6">Contacto</h4>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0a192f]/50 border border-[#10B981]/5 w-fit">
-              <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
-                <MessageSquare size={14} className="text-[#10B981]" />
-              </div>
-              <span className="text-xs text-slate-400 font-medium">info@axiomaventures.com</span>
+            <h4 className="text-white font-bold text-[10px] uppercase tracking-[0.3em] mb-8">Contacto</h4>
+            <div className="space-y-4">
+              <a href="mailto:info@axiomaventures.com" className="flex items-center gap-3 group">
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#10B981] group-hover:bg-[#10B981]/20 transition-all">
+                  <Mail size={16} />
+                </div>
+                <span className="text-white/60 text-xs group-hover:text-white transition-colors">info@axiomaventures.com</span>
+              </a>
             </div>
           </div>
 
