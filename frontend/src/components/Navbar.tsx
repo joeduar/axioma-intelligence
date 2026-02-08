@@ -22,23 +22,24 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         
-        {/* LOGO CON FAVICON.PNG */}
         <Link to="/" className="flex items-center gap-3 group">
-          <img 
-            src="/favicon.png" 
-            alt="Axioma Ventures Logo" 
-            className="w-10 h-10 object-contain" 
-            style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.3))' }}
-          />
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tighter text-white leading-none uppercase">
-              AXIOMA VENTURES
-            </span>
-            <span className="text-[10px] font-bold tracking-[0.3em] text-[#10B981] uppercase leading-none mt-1">
-              INTELLIGENCE
-            </span>
-          </div>
-        </Link>
+  <img 
+    src="/favicon.png" 
+    alt="Axioma Logo" 
+    className="w-12 h-12 object-contain" 
+    style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.3))' }}
+  />
+  <div className="flex flex-col justify-center">
+    {/* PALABRA PREDOMINANTE */}
+    <span className="text-3xl font-black tracking-tighter text-white leading-[0.8] uppercase">
+      AXIOMA
+    </span>
+    {/* DESCRIPTOR SECUNDARIO */}
+    <span className="text-[9px] font-bold tracking-[0.4em] text-[#10B981] uppercase mt-1">
+      VENTURES INTELLIGENCE
+    </span>
+  </div>
+</Link>
 
         {/* NAVEGACIÓN DESKTOP */}
         <div className="hidden md:flex items-center gap-10">
