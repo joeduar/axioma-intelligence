@@ -46,9 +46,10 @@ const SolucionesPage = () => {
   return (
     <div className="min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-5xl md:text-6xl font-black mb-16 text-white text-center uppercase tracking-tighter">
-          Nuestras <span className="text-[#10B981]">Soluciones</span>
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-light text-white uppercase tracking-[0.5em] mb-6">
+  Nuestras <span className="text-[#10B981] font-normal">Soluciones</span>
+</h1>
+<div className="w-20 h-px bg-[#10B981]/30 mx-auto mb-12" /> {/* Línea sutil decorativa */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((s, i) => (
             <div key={i} className="p-10 rounded-3xl bg-[#0a192f]/40 border border-[#10B981]/10 backdrop-blur-xl hover:border-[#10B981]/40 transition-all group">
@@ -90,9 +91,12 @@ const SectoresPage = () => {
       <div className="max-w-7xl mx-auto">
         <div className="mb-16">
           <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-[10px] mb-4 text-center">Verticales Estratégicas</h2>
-          <h1 className="text-5xl md:text-6xl font-black text-white text-center uppercase tracking-tighter">
-            Sectores <span className="text-[#10B981]">Clave</span>
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-light text-white uppercase tracking-[0.5em] mb-4 text-center">
+  Sectores <span className="text-[#10B981] font-normal">Estratégicos</span>
+</h1>
+<p className="text-[10px] font-medium tracking-[0.3em] text-slate-500 uppercase text-center mb-16">
+  Especialización por vertical de industria
+</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {sectors.map((s, i) => (
@@ -118,10 +122,9 @@ const NosotrosPage = () => {
     <div className="min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-[10px] mb-4">Nuestra Esencia</h2>
-        <h1 className="text-5xl md:text-7xl font-black text-white mb-12 uppercase tracking-tighter">
-          AXIOMA <br />
-          <span className="text-[#10B981]">Ventures Intelligence</span>
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-light text-white uppercase tracking-[0.5em] mb-12">
+  Acerca de <span className="text-[#10B981] font-normal">Nosotros</span>
+</h1>
         
         <div className="space-y-8 text-lg text-slate-400 leading-relaxed text-left bg-[#0a192f]/30 p-10 rounded-3xl border border-[#10B981]/10 backdrop-blur-xl">
           <p>
