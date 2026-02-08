@@ -112,7 +112,34 @@ const SectoresPage = () => {
   );
 };
 
-// --- COMPONENTE DE RUTAS ---
+// --- PÁGINA ACERCA DE NOSOTROS ---
+const NosotrosPage = () => {
+  return (
+    <div className="min-h-screen pt-40 pb-20 px-6 bg-[#020617]">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="text-[#10B981] font-bold tracking-[0.3em] uppercase text-[10px] mb-4">Nuestra Esencia</h2>
+        <h1 className="text-5xl md:text-7xl font-black text-white mb-12 uppercase tracking-tighter">
+          AXIOMA <br />
+          <span className="text-[#10B981]">Ventures Intelligence</span>
+        </h1>
+        
+        <div className="space-y-8 text-lg text-slate-400 leading-relaxed text-left bg-[#0a192f]/30 p-10 rounded-3xl border border-[#10B981]/10 backdrop-blur-xl">
+          <p>
+            En <span className="text-white font-bold">AXIOMA</span>, no solo implementamos tecnología; diseñamos el futuro operativo de las empresas. Nacimos como una respuesta a la complejidad de la era del dato, con la misión de democratizar el acceso a la Inteligencia Artificial de alto nivel.
+          </p>
+          <p>
+            Como agencia de IA, nos especializamos en construir <span className="text-[#10B981] font-medium">arquitecturas de inteligencia soberana</span>. Creemos que cada empresa debe ser dueña de su propia capacidad analítica, por lo que creamos soluciones que no solo optimizan, sino que aprenden y evolucionan con cada desafío.
+          </p>
+          <p>
+            Nuestro enfoque combina la precisión algorítmica con una visión estratégica humana, garantizando que cada línea de código se traduzca en una ventaja competitiva real y sostenible.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
@@ -123,6 +150,7 @@ const AnimatedRoutes = () => {
       <div className="flex-grow">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
+            {/* INICIO DE RUTAS */}
             <Route path="/" element={
               <PageTransition>
                 <main>
@@ -133,13 +161,20 @@ const AnimatedRoutes = () => {
                 </main>
               </PageTransition>
             } />
+            
             <Route path="/soluciones" element={<PageTransition><SolucionesPage /></PageTransition>} />
+            
+            {/* NUEVA RUTA: ACERCA DE NOSOTROS */}
+            <Route path="/nosotros" element={<PageTransition><NosotrosPage /></PageTransition>} />
+            
             <Route path="/sectores" element={<PageTransition><SectoresPage /></PageTransition>} />
+            
             <Route path="/contacto" element={
               <PageTransition>
                 <main><PortalHero /><PillarsSection /><SectorFocus /><InnovationFramework /></main>
               </PageTransition>
             } />
+            {/* FIN DE RUTAS */}
           </Routes>
         </AnimatePresence>
       </div>

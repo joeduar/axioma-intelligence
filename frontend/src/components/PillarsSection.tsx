@@ -33,10 +33,10 @@ const PillarsSection: React.FC = () => {
             Foundational Assets
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight uppercase">
-            Pilares de <span className="text-[#10B981]">Inteligencia Aplicada</span>
+            Pilares de <span className="text-[#10B981]">IA Aplicada</span>
           </h2>
           <p className="text-white/40 text-base max-w-2xl mx-auto leading-relaxed font-light">
-            Nuestra arquitectura operativa trasciende la analítica tradicional para crear sistemas de decisión automatizados y resilientes.
+            Nuestra estructura operativa trasciende la analítica tradicional para crear sistemas de decisión automatizados y resilientes.
           </p>
         </div>
 
