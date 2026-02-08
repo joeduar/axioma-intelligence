@@ -1,48 +1,60 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Linkedin, Twitter, MessageSquare, Mail } from 'lucide-react';
+import { Phone, MessageCircle, } from 'lucide-react';
 
 const Footer = () => {
   return (
     <footer className="bg-[#020617] border-t border-[#10B981]/10 pt-20 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          
-          {/* COLUMNA 1: LOGO CON NUEVA JERARQUÍA */}
-          <div className="flex flex-col gap-6 col-span-1 md:col-span-2">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/favicon.png" 
-                alt="Axioma Logo" 
-                className="w-10 h-10 object-contain opacity-80" 
-                style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.2))' }}
-              />
-              <div className="flex flex-col">
-                <span className="text-2xl font-black tracking-tighter text-white leading-[0.8] uppercase">
-                  AXIOMA
-                </span>
-                <span className="text-[8px] font-bold tracking-[0.4em] text-[#10B981] uppercase mt-1">
-                  VENTURES INTELLIGENCE
-                </span>
-              </div>
-            </div>
-            <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-              Transformamos datos complejos en decisiones estratégicas de alto impacto mediante precisión algorítmica e innovación constante.
-            </p>
-          </div>
+          {/* COLUMNA 1: IDENTIDAD Y CTA */}
+<div className="flex flex-col gap-6 col-span-1 md:col-span-2">
+  <div className="flex items-center gap-3">
+    <img 
+      src="/favicon.png" 
+      alt="Axioma Logo" 
+      className="w-10 h-10 object-contain opacity-80" 
+    />
+    <div className="flex flex-col">
+      <span className="text-2xl font-black tracking-tighter text-white leading-[0.8] uppercase">AXIOMA</span>
+      <span className="text-[8px] font-bold tracking-[0.4em] text-[#10B981] uppercase mt-1">VENTURES INTELLIGENCE</span>
+    </div>
+  </div>
+  
+  {/* NUEVA LLAMADA A LA ACCIÓN */}
+  <div className="max-w-xs space-y-4">
+    <p className="text-slate-400 text-xs font-light leading-relaxed tracking-wide">
+      Si deseas agendar una reunión para conocer a detalle nuestros servicios, te invitamos a escribirnos directamente:
+    </p>
+    <a href="mailto:info@axiomaventures.com" className="inline-block text-[#10B981] text-[10px] font-bold tracking-[0.2em] uppercase border-b border-[#10B981]/30 pb-1 hover:border-[#10B981] transition-all">
+      Agendar Consultoría →
+    </a>
+  </div>
+</div>{/* COLUMNA 2: CONTACTO MULTICANAL */}
+<div>
+  <h4 className="text-white font-bold text-[10px] uppercase tracking-[0.3em] mb-8">Primer Contacto</h4>
+  <div className="space-y-5">
+    {/* CORREO */}
+    <a href="mailto:info@axiomaventures.com" className="flex items-center gap-4 group">
+      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#10B981] border border-white/5 group-hover:border-[#10B981]/40 transition-all">
+        <Mail size={14} />
+      </div>
+      <span className="text-slate-400 text-[11px] group-hover:text-white transition-colors tracking-wide">info@axiomaventures.com</span>
+    </a>
 
-           {/* Columna 2: Contacto */}
-          <div>
-            <h4 className="text-white font-bold text-[10px] uppercase tracking-[0.3em] mb-8">Contacto</h4>
-            <div className="space-y-4">
-              <a href="mailto:info@axiomaventures.com" className="flex items-center gap-3 group">
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#10B981] group-hover:bg-[#10B981]/20 transition-all">
-                  <Mail size={16} />
-                </div>
-                <span className="text-white/60 text-xs group-hover:text-white transition-colors">info@axiomaventures.com</span>
-              </a>
-            </div>
-          </div>
+    {/* WHATSAPP / LLAMADA */}
+    <a href="https://wa.me/+584241601430" target="_blank" className="flex items-center gap-4 group">
+      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#10B981] border border-white/5 group-hover:border-[#10B981]/40 transition-all">
+        <MessageCircle size={14} />
+      </div>
+      <div className="flex flex-col">
+        <span className="text-slate-400 text-[11px] group-hover:text-white transition-colors tracking-wide">+XX XXX XXXXXXX</span>
+        <span className="text-[9px] text-[#10B981]/60 uppercase tracking-widest font-bold">WhatsApp Business</span>
+      </div>
+    </a>
+  </div>
+</div>
 
           {/* COLUMNA 3: SOCIAL */}
           <div>
