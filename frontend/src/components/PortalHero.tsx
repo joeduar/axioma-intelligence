@@ -22,7 +22,7 @@ const PortalHero: React.FC = () => {
             {/* TÍTULO: FUENTE LIGERA, PROFESIONAL Y LUXURY */}
             <h1 className="text-4xl md:text-5xl font-light text-white leading-[1.2] mb-8 uppercase tracking-[0.05em]">
               Donde la IA se convierte en <br />
-              <span className="text-[#10B981] font-normal italic">Ventaja Estratégica</span>
+              <span className="text-[#10B981] font-normal">Ventaja Estratégica</span>
             </h1>
             
             <p className="text-slate-400 text-lg max-w-lg mb-10 leading-relaxed font-light tracking-wide">
