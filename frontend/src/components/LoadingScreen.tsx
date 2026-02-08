@@ -28,15 +28,14 @@ const LoadingScreen: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0A0E27] flex flex-col items-center justify-center p-6 text-center">
-      {/* Iluminación de fondo sutil */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(16,185,129,0.05),transparent_70%)] pointer-events-none" />
 
-      <div className="max-w-md w-full flex flex-col items-center space-y-12 relative z-10">
+      <div className="max-w-2xl w-full flex flex-col items-center space-y-12 relative z-10">
         
-        {/* Logo AXIOMA con Animación de Pulso Original */}
+        {/* LOGO CON PULSO */}
         <div className="relative group">
           <div className="absolute inset-0 bg-[#10B981]/20 blur-3xl rounded-full animate-pulse" />
-          <div className="relative w-24 h-24 md:w-32 md:h-32 flex items-center justify-center transition-transform duration-700 hover:scale-110">
+          <div className="relative w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
             <img 
               src="/favicon.png" 
               alt="Axioma Logo" 
@@ -45,27 +44,29 @@ const LoadingScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* NOMBRE DE LA MARCA - TIPOGRAFÍA ORIGINAL RECUPERADA */}
-        <div className="space-y-4">
-          <h1 className="text-white text-3xl md:text-4xl font-black tracking-[0.2em] uppercase leading-tight">
-            Axioma <br />
-            <span className="text-[#10B981]"> Ventures Intelligence</span>
+        {/* IDENTIDAD: AXIOMA ARRIBA, VENTURES INTELLIGENCE ABAJO EN UNA LÍNEA */}
+        <div className="flex flex-col items-center">
+          <h1 className="text-white text-4xl md:text-5xl font-black tracking-[0.3em] uppercase mb-2">
+            AXIOMA
           </h1>
-          <p className="text-white/40 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase">
-            Inteligencia de Negocios AXIOMA
+          <h2 className="text-[#10B981] text-xl md:text-2xl font-black tracking-[0.25em] uppercase whitespace-nowrap">
+            VENTURES INTELLIGENCE
+          </h2>
+          <p className="text-white/40 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase mt-4">
+            INTELIGENCIA DE NEGOCIOS AXIOMA
           </p>
         </div>
 
-        {/* Contador de Lanzamiento Minimalista */}
-        <div className="grid grid-cols-4 gap-6 md:gap-10 w-full pt-10 border-t border-white/5">
+        {/* CONTADOR */}
+        <div className="grid grid-cols-4 gap-6 md:gap-12 w-full max-w-lg pt-10 border-t border-white/5">
           {[
-            { label: 'Días', value: timeLeft.days },
-            { label: 'Hrs', value: timeLeft.hours },
-            { label: 'Min', value: timeLeft.minutes },
-            { label: 'Seg', value: timeLeft.seconds }
+            { label: 'DÍAS', value: timeLeft.days },
+            { label: 'HRS', value: timeLeft.hours },
+            { label: 'MIN', value: timeLeft.minutes },
+            { label: 'SEG', value: timeLeft.seconds }
           ].map((item, i) => (
             <div key={i} className="flex flex-col items-center">
-              <span className="text-3xl md:text-4xl font-extralight text-white tracking-tighter mb-1">
+              <span className="text-3xl md:text-5xl font-extralight text-white tracking-tighter mb-1">
                 {String(item.value).padStart(2, '0')}
               </span>
               <span className="text-[8px] font-bold tracking-[0.3em] text-[#10B981]/60 uppercase">
@@ -75,15 +76,14 @@ const LoadingScreen: React.FC = () => {
           ))}
         </div>
 
-        {/* Footer de Mantenimiento Centrado */}
-        <div className="flex flex-col items-center space-y-3 pt-6">
-          <span className="text-[#10B981] text-[10px] font-bold tracking-[0.3em] uppercase animate-pulse w-full text-center">
+        {/* FOOTER: TODO EN UNA SOLA LÍNEA */}
+        <div className="flex flex-col items-center space-y-6 pt-10">
+          <span className="text-[#10B981] text-[10px] font-bold tracking-[0.3em] uppercase">
             LA IA ES EL FUTURO DEL MUNDO
           </span>
-          <span className="text-white/20 text-[9px] font-medium tracking-[0.5em] uppercase w-full text-center">
-            Axioma Ventures Intelligence C.A 
-            TODOS LOS DERECHOS RESERVADOS © 2026
-          </span>
+          <p className="text-white/20 text-[9px] font-medium tracking-[0.2em] uppercase whitespace-nowrap">
+            AXIOMA VENTURES INTELLIGENCE C.A TODOS LOS DERECHOS RESERVADOS © 2026
+          </p>
         </div>
       </div>
     </div>
