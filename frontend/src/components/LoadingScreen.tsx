@@ -82,7 +82,7 @@ const LoadingScreen: React.FC = () => {
             LA IA ES EL FUTURO DEL MUNDO
           </span>
           <p className="text-white/20 text-[9px] font-medium tracking-[0.2em] uppercase whitespace-nowrap">
-            AXIOMA VENTURES INTELLIGENCE C.A TODOS LOS DERECHOS RESERVADOS © 2026
+            AXIOMA VENTURES INTELLIGENCE C.A - TODOS LOS DERECHOS RESERVADOS © 2026
           </p>
         </div>
       </div>
