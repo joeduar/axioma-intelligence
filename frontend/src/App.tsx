@@ -188,17 +188,22 @@ const AnimatedRoutes = () => {
 };
 
 export default function App() {
-  // Dejamos el estado en true permanentemente para el modo mantenimiento
-  const [loading, setLoading] = useState(true);
+  // 1. El estado inicial busca si ya hay acceso. Si no existe, es true (muestra loading).
+  const [loading, setLoading] = useState(() => {
+    return localStorage.getItem('auth_access') !== 'true';
+  });
 
-  // Eliminamos el setTimeout para que no se quite la pantalla de mantenimiento sola
-  useEffect(() => {
-    // Aquí podrías poner lógica de carga de datos en el futuro
-    console.log("Axioma Intelligence - Modo Mantenimiento Activo");
-  }, []);
+  // 2. Función que se activa cuando metes el código correcto en el LoadingScreen
+  const handleAccess = () => {
+    setLoading(false);
+  };
 
-  <LoadingScreen onAccess={() => setLoading(false)} />
+  // 3. Si loading es true, bloqueamos toda la web con el LoadingScreen
+  if (loading) {
+    return <LoadingScreen onAccess={handleAccess} />;
+  }
 
+  // 4. Solo si loading es false, se renderiza el contenido real
   return (
     <Router>
       <AnimatedRoutes />
