@@ -81,10 +81,8 @@ const Footer = () => {
         </div>
       </div>
     </footer>
-  );
-};
-
-<button 
+    
+  ); <button 
   onClick={() => {
     localStorage.removeItem('auth_access');
     window.location.reload();
@@ -93,5 +91,8 @@ const Footer = () => {
 >
   Bloquear Acceso
 </button>
+
+};
+
 
 export default Footer;
