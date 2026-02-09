@@ -1,30 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 const LoadingScreen: React.FC = () => {
-  // CONFIGURA TU FECHA AQUÍ (Año, Mes (0-11), Día, Hora, Minuto)
-  const targetDate = new Date(2026, 1, 15, 0, 0, 0).getTime(); 
-  
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0, hours: 0, minutes: 0, seconds: 0
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const difference = targetDate - now;
-
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [targetDate]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#0A0E27] flex flex-col items-center justify-center p-6 text-center">
@@ -55,25 +31,6 @@ const LoadingScreen: React.FC = () => {
           <p className="text-white/40 text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase mt-4">
             INTELIGENCIA DE NEGOCIOS AXIOMA
           </p>
-        </div>
-
-        {/* CONTADOR */}
-        <div className="grid grid-cols-4 gap-6 md:gap-12 w-full max-w-lg pt-10 border-t border-white/5">
-          {[
-            { label: 'DÍAS', value: timeLeft.days },
-            { label: 'HRS', value: timeLeft.hours },
-            { label: 'MIN', value: timeLeft.minutes },
-            { label: 'SEG', value: timeLeft.seconds }
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <span className="text-3xl md:text-5xl font-extralight text-white tracking-tighter mb-1">
-                {String(item.value).padStart(2, '0')}
-              </span>
-              <span className="text-[8px] font-bold tracking-[0.3em] text-[#10B981]/60 uppercase">
-                {item.label}
-              </span>
-            </div>
-          ))}
         </div>
 
         {/* FOOTER: TODO EN UNA SOLA LÍNEA */}
