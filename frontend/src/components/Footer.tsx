@@ -84,4 +84,14 @@ const Footer = () => {
   );
 };
 
+<button 
+  onClick={() => {
+    localStorage.removeItem('auth_access');
+    window.location.reload();
+  }}
+  className="text-white/20 text-[8px] uppercase tracking-widest hover:text-red-500"
+>
+  Bloquear Acceso
+</button>
+
 export default Footer;
