@@ -197,7 +197,7 @@ export default function App() {
     console.log("Axioma Intelligence - Modo Mantenimiento Activo");
   }, []);
 
-  if (loading) return <LoadingScreen />;
+  <LoadingScreen onAccess={() => setLoading(false)} />
 
   return (
     <Router>
