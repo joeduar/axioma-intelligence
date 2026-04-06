@@ -1,94 +1,134 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Linkedin, Twitter, MessageSquare, Mail, MessageCircle } from 'lucide-react';
+import { Mail, MessageCircle, Linkedin, Twitter, Instagram } from 'lucide-react';
 
 const Footer = () => {
+
+  const navLinks = [
+    { label: 'Inicio', path: '/' },
+    { label: 'Asesores', path: '/asesores' },
+    { label: 'Como funciona', path: '/como-funciona' },
+    { label: 'Nosotros', path: '/nosotros' },
+  ];
+
   return (
-    <footer className="bg-[#020617] border-t border-[#10B981]/10 pt-20 pb-10 px-6">
+    <footer className="bg-[#080C20] border-t border-white/5 pt-20 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          {/* COLUMNA 1: IDENTIDAD Y CTA */}
-          <div className="flex flex-col gap-6 col-span-1 md:col-span-2">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/favicon.png" 
-                alt="Axioma Logo" 
-                className="w-10 h-10 object-contain opacity-80" 
+
+          <div className="md:col-span-2 flex flex-col gap-6">
+            <Link to="/" className="flex items-center gap-3 w-fit">
+              <img
+                src="/favicon.png"
+                alt="Axioma Logo"
+                className="w-9 h-9 object-contain opacity-90"
               />
               <div className="flex flex-col">
-                <span className="text-2xl font-black tracking-tighter text-white leading-[0.8] uppercase">AXIOMA</span>
-                <span className="text-[8px] font-bold tracking-[0.4em] text-[#10B981] uppercase mt-1">VENTURES INTELLIGENCE</span>
+                <span className="text-xl font-black tracking-tighter text-white leading-none uppercase">
+                  AXIOMA
+                </span>
+                <span className="text-[7px] font-bold tracking-[0.4em] text-[#10B981] uppercase mt-1">
+                  VENTURES INTELLIGENCE
+                </span>
               </div>
-            </div>
-            
-            <div className="max-w-xs space-y-4">
-              <p className="text-slate-400 text-xs font-light leading-relaxed tracking-wide">
-                Si deseas agendar una reunión para conocer a detalle nuestros servicios, te invitamos a escribirnos directamente:
-              </p>
-              <a href="mailto:info@axiomaventures.com" className="inline-block text-[#10B981] text-[10px] font-bold tracking-[0.2em] uppercase border-b border-[#10B981]/30 pb-1 hover:border-[#10B981] transition-all">
-                Agendar Consultoría →
+            </Link>
+
+            <p className="text-slate-500 text-xs font-light leading-relaxed max-w-xs">
+              La plataforma que conecta asesores profesionales verificados con empresas
+              y personas que necesitan orientacion estrategica.
+            </p>
+
+            <div className="flex gap-3">
+              <a href="#" className="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-[#10B981] transition-all">
+                <Linkedin size={15} />
+              </a>
+              <a href="#" className="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-[#10B981] transition-all">
+                <Twitter size={15} />
+              </a>
+              <a href="#" className="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-500 hover:text-[#10B981] transition-all">
+                <Instagram size={15} />
               </a>
             </div>
           </div>
 
-          {/* COLUMNA 2: CONTACTO MULTICANAL */}
           <div>
-            <h4 className="text-white font-bold text-[10px] uppercase tracking-[0.3em] mb-8">Primer Contacto</h4>
-            <div className="space-y-5">
-              <a href="mailto:info@axiomaventures.com" className="flex items-center gap-4 group">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#10B981] border border-white/5 group-hover:border-[#10B981]/40 transition-all">
-                  <Mail size={14} />
+            <h4 className="text-white font-bold text-[9px] uppercase tracking-[0.35em] mb-7">
+              Plataforma
+            </h4>
+            <div className="flex flex-col gap-4">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className="text-slate-500 hover:text-white text-[11px] font-medium tracking-wide transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                to="/registro"
+                className="text-[#10B981] hover:text-white text-[11px] font-medium tracking-wide transition-colors"
+              >
+                Registrarme como asesor
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-[9px] uppercase tracking-[0.35em] mb-7">
+              Contacto
+            </h4>
+            <div className="flex flex-col gap-5">
+              <a
+                href="mailto:info@axiomaventures.com"
+                className="flex items-center gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[#10B981] group-hover:border-[#10B981]/30 transition-all">
+                  <Mail size={13} />
                 </div>
-                <span className="text-slate-400 text-[11px] group-hover:text-white transition-colors tracking-wide">info@axiomaventures.com</span>
+                <span className="text-slate-500 text-[11px] group-hover:text-white transition-colors">
+                  info@axiomaventures.com
+                </span>
               </a>
 
-              <a href="https://wa.me/+584241601430" target="_blank" className="flex items-center gap-4 group">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#10B981] border border-white/5 group-hover:border-[#10B981]/40 transition-all">
-                  <MessageCircle size={14} />
+              <a
+                href="https://wa.me/584241601430"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 group"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-[#10B981] group-hover:border-[#10B981]/30 transition-all">
+                  <MessageCircle size={13} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-slate-400 text-[11px] group-hover:text-white transition-colors tracking-wide">+58 424 1601430</span>
-                  <span className="text-[9px] text-[#10B981]/60 uppercase tracking-widest font-bold">WhatsApp Business</span>
+                  <span className="text-slate-500 text-[11px] group-hover:text-white transition-colors">
+                    WhatsApp Business
+                  </span>
+                  <span className="text-[9px] text-[#10B981]/50 font-bold uppercase tracking-widest">
+                    Respuesta rapida
+                  </span>
                 </div>
               </a>
             </div>
           </div>
 
-          {/* COLUMNA 3: SOCIAL */}
-          <div>
-            <h4 className="text-white font-bold text-[10px] tracking-[0.3em] uppercase mb-6">Social</h4>
-            <div className="flex gap-3">
-              {[Linkedin, Twitter, MessageSquare].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-xl bg-[#0a192f]/50 border border-[#10B981]/5 flex items-center justify-center text-slate-400 hover:text-[#10B981] hover:border-[#10B981]/20 transition-all">
-                  <Icon size={18} />
-                </a>
-              ))}
-            </div>
+        </div>
+
+        <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-slate-600 text-[9px] font-bold tracking-widest uppercase">
+            2026 Axioma Ventures Intelligence C.A. Todos los derechos reservados
+          </p>
+          <div className="flex items-center gap-8">
+            <a href="#" className="text-slate-600 hover:text-slate-400 text-[9px] font-bold tracking-widest uppercase transition-colors">
+              Privacidad
+            </a>
+            <a href="#" className="text-slate-600 hover:text-slate-400 text-[9px] font-bold tracking-widest uppercase transition-colors">
+              Terminos
+            </a>
           </div>
         </div>
 
-        {/* LÍNEA FINAL */}
-        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">
-            © 2026 AXIOMA VENTURES INTELLIGENCE C.A.
-          </p>
-          
-          <div className="flex items-center gap-6 md:gap-10">
-            <a href="#" className="text-slate-500 hover:text-white text-[10px] font-bold tracking-widest uppercase transition-colors">Privacidad</a>
-            <a href="#" className="text-slate-500 hover:text-white text-[10px] font-bold tracking-widest uppercase transition-colors">Términos</a>
-            
-            {/* BOTÓN DE BLOQUEO: AHORA DENTRO DEL COMPONENTE */}
-            <button 
-              onClick={() => {
-                localStorage.removeItem('auth_access');
-                window.location.reload();
-              }}
-              className="text-white/10 hover:text-red-500/50 text-[8px] font-bold tracking-widest uppercase transition-all border border-white/5 px-3 py-1 rounded-full hover:border-red-500/20"
-            >
-              Bloquear Acceso
-            </button>
-          </div>
-        </div>
       </div>
     </footer>
   );

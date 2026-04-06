@@ -1,55 +1,94 @@
-export const NARRATIVE = {
-  headline: "La Confianza es Nuestra Mayor Inversión",
-  subheadline: "Un fondo colectivo de inversión diseñado para reconstruir el tejido productivo de Venezuela bajo estándares internacionales de transparencia y ética.",
-  steps: [
-    { text: "Validando protocolos de gobernanza institucional..." },
-    { text: "Sincronizando con estándares de Private Equity global..." },
-    { text: "Evaluando proyectos con potencial de exportación..." },
-    { text: "Consolidando capital ético para el desarrollo PyME..." }
-  ],
-  pillars: [
-    {
-      title: "Gobernanza Radical",
-      description: "Estructuras de supervisión independientes y auditorías externas continuas para garantizar cada centavo."
-    },
-    {
-      title: "Impacto Real",
-      description: "Enfoque en PyMEs con capacidad instalada que requieren capital inteligente para escalar."
-    },
-    {
-      title: "Visión Exportadora",
-      description: "Priorizamos proyectos que posicionen la marca Venezuela en mercados internacionales."
-    }
-  ],
-  sectors: [
-    {
-      name: "Agroindustria 4.0",
-      description: "Optimización de cadenas de suministro de alimentos y tecnificación de tierras.",
-      stats: "45%"
-    },
-    {
-      name: "Tecnología y Fintech",
-      description: "Infraestructura financiera moderna para un mercado hambriento de digitalización.",
-      stats: "25%"
-    },
-    {
-      name: "Manufactura Ética",
-      description: "Revitalización de parques industriales enfocados en exportación.",
-      stats: "30%"
-    }
-  ],
-  governance: [
-    { label: "Cumplimiento KYC/AML", value: "Grado Bancario" },
-    { label: "Estándares Contables", value: "IFRS / NIIF" },
-    { label: "Reporte de Impacto", value: "Métrica ESG" },
-    { label: "Custodia de Fondos", value: "Tier 1 Trustees" }
-  ],
-  stats: [
-    { label: "Target Fund Size", value: "$25M", sub: "Fase Inicial" },
-    { label: "Sectores Clave", value: "05", sub: "Diversificación" },
-    { label: "Internal Rate of Return", value: "18-22%", sub: "Proyectado" }
-  ],
-  offices: [
-    { city: "Caracas, Venezuela", address: "Av. Francisco de Miranda, Edif. Galipán" }
-  ]
+// ============================================
+// AXIOMA VENTURES INTELLIGENCE
+// Marketplace de Asesorías y Consultoría
+// ============================================
+
+export const BRAND = {
+  name: "Axioma",
+  fullName: "Axioma Ventures Intelligence",
+  tagline: "Conectamos expertos con quienes los necesitan",
+  description: "La plataforma que conecta asesores especializados con empresas y personas que buscan orientación estratégica en finanzas, negocios, datos, tecnología y más.",
+  email: "info@axiomaventures.com",
+  whatsapp: "+584241601430",
+  year: "2026",
 };
+
+export const NAV_LINKS = [
+  { label: "Inicio", path: "/" },
+  { label: "Asesores", path: "/asesores" },
+  { label: "Cómo funciona", path: "/como-funciona" },
+  { label: "Nosotros", path: "/nosotros" },
+];
+
+export const ADVISORY_CATEGORIES = [
+  { id: "finanzas", label: "Finanzas", icon: "BarChart3", desc: "Inversiones, planificación financiera, flujo de caja" },
+  { id: "negocios", label: "Negocios", icon: "Briefcase", desc: "Estrategia empresarial, crecimiento, operaciones" },
+  { id: "datos", label: "Datos & IA", icon: "Brain", desc: "Analítica, Machine Learning, Business Intelligence" },
+  { id: "legal", label: "Legal", icon: "Scale", desc: "Contratos, compliance, propiedad intelectual" },
+  { id: "marketing", label: "Marketing", icon: "Megaphone", desc: "Branding, digital, estrategia de contenido" },
+  { id: "tecnologia", label: "Tecnología", icon: "Cpu", desc: "Arquitectura de software, infraestructura, ciberseguridad" },
+  { id: "rrhh", label: "Recursos Humanos", icon: "Users", desc: "Talento, cultura organizacional, compensación" },
+  { id: "startups", label: "Startups", icon: "Rocket", desc: "Fundraising, product-market fit, pitch deck" },
+];
+
+export const HOW_IT_WORKS_STEPS = [
+  {
+    step: "01",
+    title: "Encuentra tu asesor",
+    desc: "Explora nuestro catálogo de expertos verificados. Filtra por especialidad, precio o disponibilidad.",
+  },
+  {
+    step: "02",
+    title: "Reserva tu sesión",
+    desc: "Elige el horario que mejor se adapte a ti. El pago es seguro y se procesa automáticamente.",
+  },
+  {
+    step: "03",
+    title: "Recibe asesoría de calidad",
+    desc: "Conéctate por videollamada con tu asesor. Al finalizar, califica tu experiencia.",
+  },
+];
+
+export const STATS = [
+  { label: "Asesores verificados", value: "200+", sub: "En 8 especialidades" },
+  { label: "Sesiones completadas", value: "1,400+", sub: "Con 4.9 de calificación" },
+  { label: "Tiempo promedio de respuesta", value: "< 2h", sub: "De confirmación" },
+];
+
+export const PRICING_PLANS = [
+  {
+    id: "basico",
+    name: "Básico",
+    price: 29,
+    currency: "USD",
+    period: "mes",
+    forAdvisors: true,
+    features: [
+      "Perfil en el catálogo",
+      "Hasta 10 sesiones al mes",
+      "Cobro automático por sesión",
+      "Chat con clientes",
+      "Soporte por email",
+    ],
+    highlighted: false,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: 79,
+    currency: "USD",
+    period: "mes",
+    forAdvisors: true,
+    features: [
+      "Todo lo del plan Básico",
+      "Sesiones ilimitadas",
+      "Perfil destacado en búsquedas",
+      "Badge de asesor verificado",
+      "Analíticas de perfil",
+      "Soporte prioritario",
+    ],
+    highlighted: true,
+  },
+];
+
+export const COMMISSION_RATE = 0.15; // 15% por transacción
