@@ -2,46 +2,78 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Loader2, ArrowLeft, Briefcase } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [role, setRole] = useState<'cliente' | 'asesor'>('cliente');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    setTimeout(() => {
-      if (name && email && password) {
-        if (role === 'asesor') {
-          navigate('/dashboard/asesor');
-        } else {
-          navigate('/dashboard/cliente');
-        }
-      } else {
-        setError('Completa todos los campos');
-      }
+    if (password.length < 8) {
+      setError('La contrasena debe tener al menos 8 caracteres');
       setLoading(false);
-    }, 1000);
+      return;
+    }
+
+    const { error } = await signUp(email, password, name, role);
+
+    if (error) {
+      setError(error.message || 'Error al crear la cuenta. Intenta de nuevo.');
+      setLoading(false);
+      return;
+    }
+
+    setSuccess(true);
+    setLoading(false);
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[#0A0E27] flex items-center justify-center px-6">
+        <div className="w-full max-w-md">
+          <GlassCard className="p-10 border-[#10B981]/20 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center mx-auto mb-6">
+              <User size={28} className="text-[#10B981]" />
+            </div>
+            <h2 className="text-xl font-bold text-white uppercase tracking-wider mb-3">
+              Cuenta creada
+            </h2>
+            <p className="text-slate-400 text-sm font-light leading-relaxed mb-6">
+              Te enviamos un email de confirmacion a{' '}
+              <span className="text-white font-medium">{email}</span>.
+              Revisa tu bandeja de entrada y confirma tu cuenta para continuar.
+            </p>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 bg-[#10B981] text-[#0A0E27] font-black px-8 py-3 rounded-full text-[10px] uppercase tracking-wider hover:bg-[#0ea371] transition-all"
+            >
+              Ir al Login
+            </Link>
+          </GlassCard>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0E27] flex items-center justify-center px-6 py-12 relative overflow-hidden">
-
       <div
         className="absolute inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.06), transparent 60%)' }}
       />
 
       <div className="w-full max-w-md relative z-10">
-
-        {/* LOGO */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center gap-2">
             <img
@@ -60,7 +92,6 @@ const RegisterPage = () => {
         </div>
 
         <GlassCard className="p-8 border-white/10">
-
           <div className="mb-8">
             <h1 className="text-xl font-bold text-white uppercase tracking-wider mb-1">
               Crear cuenta
@@ -70,34 +101,26 @@ const RegisterPage = () => {
             </p>
           </div>
 
-          {/* SELECTOR DE ROL */}
           <div className="flex bg-white/5 p-1 rounded-xl mb-6 border border-white/5">
             <button
               type="button"
               onClick={() => setRole('cliente')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${role === 'cliente'
-                ? 'bg-[#10B981] text-[#0A0E27]'
-                : 'text-slate-400 hover:text-white'
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${role === 'cliente' ? 'bg-[#10B981] text-[#0A0E27]' : 'text-slate-400 hover:text-white'
                 }`}
             >
-              <User size={13} />
-              Soy cliente
+              <User size={13} /> Panel cliente
             </button>
             <button
               type="button"
               onClick={() => setRole('asesor')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${role === 'asesor'
-                ? 'bg-[#10B981] text-[#0A0E27]'
-                : 'text-slate-400 hover:text-white'
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${role === 'asesor' ? 'bg-[#10B981] text-[#0A0E27]' : 'text-slate-400 hover:text-white'
                 }`}
             >
-              <Briefcase size={13} />
-              Soy asesor
+              <Briefcase size={13} /> Panel asesor
             </button>
           </div>
 
-          {/* INFO CONTEXTUAL */}
-          <div className="mb-6 px-4 py-3 rounded-xl bg-white/3 border border-white/5">
+          <div className="mb-6 px-4 py-3 rounded-xl bg-white/5 border border-white/5">
             <p className="text-slate-400 text-[10px] leading-relaxed">
               {role === 'cliente'
                 ? 'Como cliente podras buscar asesores, reservar sesiones y gestionar tus consultorias desde tu panel personal.'
@@ -113,7 +136,6 @@ const RegisterPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
             <div>
               <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                 Nombre completo
@@ -150,7 +172,7 @@ const RegisterPage = () => {
 
             <div>
               <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
-                Contrasena
+                Contraseña
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -179,7 +201,6 @@ const RegisterPage = () => {
             <p className="text-slate-600 text-[9px] text-center leading-relaxed">
               Al registrarte aceptas nuestros Terminos de servicio y Politica de privacidad
             </p>
-
           </form>
 
           <div className="mt-6 pt-6 border-t border-white/5 text-center">
@@ -199,13 +220,11 @@ const RegisterPage = () => {
               <ArrowLeft size={11} /> Volver al inicio
             </Link>
           </div>
-
         </GlassCard>
 
         <p className="text-center text-slate-600 text-[9px] uppercase tracking-widest mt-6">
           Axioma Ventures Intelligence C.A. 2026
         </p>
-
       </div>
     </div>
   );

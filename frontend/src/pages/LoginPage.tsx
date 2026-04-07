@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { signIn, profile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,27 +17,35 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    setTimeout(() => {
-      if (email && password) {
-        navigate('/dashboard/cliente');
-      } else {
-        setError('Completa todos los campos');
-      }
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      setError('Credenciales incorrectas. Verifica tu email y contrasena.');
       setLoading(false);
-    }, 1000);
+      return;
+    }
+
+    const { data } = await import('../lib/supabase').then(m =>
+      m.supabase.from('profiles').select('role').eq('email', email).single()
+    );
+
+    if (data?.role === 'asesor') {
+      navigate('/dashboard/asesor');
+    } else {
+      navigate('/dashboard/cliente');
+    }
+
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-[#0A0E27] flex items-center justify-center px-6 relative overflow-hidden">
-
       <div
         className="absolute inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(circle at 50% 40%, rgba(16,185,129,0.06), transparent 60%)' }}
       />
 
       <div className="w-full max-w-md relative z-10">
-
-        {/* LOGO */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex flex-col items-center gap-2">
             <img
@@ -54,7 +64,6 @@ const LoginPage = () => {
         </div>
 
         <GlassCard className="p-8 border-white/10">
-
           <div className="mb-8">
             <h1 className="text-xl font-bold text-white uppercase tracking-wider mb-1">
               Bienvenido de vuelta
@@ -71,7 +80,6 @@ const LoginPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
             <div>
               <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                 Email
@@ -91,7 +99,7 @@ const LoginPage = () => {
 
             <div>
               <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
-                Contrasena
+                Contraseña
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -108,7 +116,7 @@ const LoginPage = () => {
 
             <div className="flex justify-end">
               <button type="button" className="text-[10px] text-slate-500 hover:text-[#10B981] transition-colors uppercase tracking-wider font-bold">
-                Olvide mi contrasena
+                Olvide mi contraseña
               </button>
             </div>
 
@@ -119,7 +127,6 @@ const LoginPage = () => {
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : 'Ingresar a mi cuenta'}
             </button>
-
           </form>
 
           <div className="mt-6 pt-6 border-t border-white/5 text-center">
@@ -139,13 +146,11 @@ const LoginPage = () => {
               <ArrowLeft size={11} /> Volver al inicio
             </Link>
           </div>
-
         </GlassCard>
 
         <p className="text-center text-slate-600 text-[9px] uppercase tracking-widest mt-6">
           Axioma Ventures Intelligence C.A. 2026
         </p>
-
       </div>
     </div>
   );

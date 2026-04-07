@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
+import { AuthProvider } from './context/AuthContext';
 
 import HomePage from './pages/HomePage';
 import AdvisorsPage from './pages/AdvisorsPage';
@@ -15,6 +16,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ClientDashboard from './pages/ClientDashboard';
 import AdvisorDashboard from './pages/AdvisorDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -76,11 +79,19 @@ const AnimatedRoutes = () => {
         } />
 
         <Route path="/dashboard/cliente" element={
-          <CleanLayout><PageTransition><ClientDashboard /></PageTransition></CleanLayout>
+          <CleanLayout>
+            <ProtectedRoute role="cliente">
+              <PageTransition><ClientDashboard /></PageTransition>
+            </ProtectedRoute>
+          </CleanLayout>
         } />
 
         <Route path="/dashboard/asesor" element={
-          <CleanLayout><PageTransition><AdvisorDashboard /></PageTransition></CleanLayout>
+          <CleanLayout>
+            <ProtectedRoute role="asesor">
+              <PageTransition><AdvisorDashboard /></PageTransition>
+            </ProtectedRoute>
+          </CleanLayout>
         } />
 
         <Route path="*" element={
@@ -112,8 +123,11 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <AnimatedRoutes />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <AnimatedRoutes />
+      </Router>
+    </AuthProvider>
   );
 }

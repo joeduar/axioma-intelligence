@@ -10,6 +10,7 @@
     "sp": "git add . && git commit -m \"Actualización de desarrollo\" && git push origin main"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "clsx": "^2.1.0",
     "framer-motion": "^12.33.0",
     "lucide-react": "^0.344.0",
