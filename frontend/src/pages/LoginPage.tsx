@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -17,25 +18,32 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    const { error } = await signIn(email, password);
+    try {
+      const { error } = await signIn(email, password);
 
-    if (error) {
-      setError('Credenciales incorrectas. Verifica tu email y contrasena.');
+      if (error) {
+        setError('Credenciales incorrectas. Verifica tu email y contrasena.');
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('email', email)
+        .single();
+
+      if (data?.role === 'asesor') {
+        navigate('/dashboard/asesor');
+      } else {
+        navigate('/dashboard/cliente');
+      }
+
+    } catch (err) {
+      setError('Ocurrio un error. Intenta de nuevo.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data } = await import('../lib/supabase').then(m =>
-      m.supabase.from('profiles').select('role').eq('email', email).single()
-    );
-
-    if (data?.role === 'asesor') {
-      navigate('/dashboard/asesor');
-    } else {
-      navigate('/dashboard/cliente');
-    }
-
-    setLoading(false);
   };
 
   return (
