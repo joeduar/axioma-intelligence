@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Calendar, DollarSign, Star, Users, LogOut,
-  Bell, Settings, ChevronRight, CheckCircle, Clock
+  Calendar, DollarSign, Users,
+  ChevronRight, CheckCircle, Clock
 } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import DashboardHeader from '../components/DashboardHeader';
+import DashboardFooter from '../components/DashboardFooter';
+import AvatarUpload from '../components/AvatarUpload';
 
 const AdvisorDashboard = () => {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'inicio' | 'solicitudes' | 'sesiones' | 'perfil'>('inicio');
   const [advisorData, setAdvisorData] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form perfil
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formBio, setFormBio] = useState('');
@@ -90,14 +92,9 @@ const AdvisorDashboard = () => {
     };
 
     if (advisorData) {
-      await supabase
-        .from('advisors')
-        .update(profileData)
-        .eq('user_id', user?.id);
+      await supabase.from('advisors').update(profileData).eq('user_id', user?.id);
     } else {
-      await supabase
-        .from('advisors')
-        .insert(profileData);
+      await supabase.from('advisors').insert(profileData);
     }
 
     await fetchAdvisorData();
@@ -107,31 +104,19 @@ const AdvisorDashboard = () => {
   };
 
   const handleAcceptSession = async (sessionId: string) => {
-    await supabase
-      .from('sessions')
-      .update({ status: 'confirmada' })
-      .eq('id', sessionId);
+    await supabase.from('sessions').update({ status: 'confirmada' }).eq('id', sessionId);
     fetchSessions();
   };
 
   const handleRejectSession = async (sessionId: string) => {
-    await supabase
-      .from('sessions')
-      .update({ status: 'cancelada' })
-      .eq('id', sessionId);
+    await supabase.from('sessions').update({ status: 'cancelada' }).eq('id', sessionId);
     fetchSessions();
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
   };
 
   const pendingSessions = sessions.filter(s => s.status === 'pendiente');
   const upcomingSessions = sessions.filter(s => s.status === 'confirmada');
   const pastSessions = sessions.filter(s => s.status === 'completada');
   const totalEarnings = pastSessions.reduce((sum, s) => sum + (s.price || 0), 0);
-
   const firstName = profile?.full_name?.split(' ')[0] || 'Asesor';
 
   const CATEGORIES = [
@@ -140,60 +125,16 @@ const AdvisorDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0E27] text-white">
+    <div className="min-h-screen bg-[#0A0E27] text-white flex flex-col">
 
-      {/* NAVBAR */}
-      <header className="border-b border-white/5 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <img
-              src="/favicon.png"
-              alt="Axioma"
-              className="w-8 h-8 object-contain"
-              style={{ filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.3))' }}
-            />
-            <div>
-              <p className="text-white font-black tracking-tighter uppercase text-base leading-none">AXIOMA</p>
-              <p className="text-[#10B981] text-[7px] font-bold tracking-[0.4em] uppercase">VENTURES INTELLIGENCE</p>
-            </div>
-          </Link>
+      <DashboardHeader
+        role="asesor"
+        pendingCount={pendingSessions.length}
+        onSettingsClick={() => setActiveTab('perfil')}
+      />
 
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-500 hover:text-white transition-colors">
-              <Bell size={18} />
-              {pendingSessions.length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-[#10B981] rounded-full text-[8px] font-black text-[#0A0E27] flex items-center justify-center">
-                  {pendingSessions.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('perfil')}
-              className="p-2 text-slate-500 hover:text-white transition-colors"
-            >
-              <Settings size={18} />
-            </button>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <div className="w-6 h-6 rounded-full bg-[#10B981]/20 flex items-center justify-center">
-                <span className="text-[#10B981] text-[10px] font-black">
-                  {firstName[0]}
-                </span>
-              </div>
-              <span className="text-white text-xs font-bold">{firstName}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-slate-500 hover:text-white text-[10px] font-bold uppercase tracking-wider transition-colors"
-            >
-              <LogOut size={15} /> Salir
-            </button>
-          </div>
-        </div>
-      </header>
+      <div className="max-w-6xl mx-auto px-6 py-8 w-full flex-grow">
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-
-        {/* TABS */}
         <div className="flex gap-1 bg-white/5 p-1 rounded-xl w-fit mb-8 border border-white/5 flex-wrap">
           {[
             { id: 'inicio', label: 'Inicio' },
@@ -214,7 +155,6 @@ const AdvisorDashboard = () => {
           ))}
         </div>
 
-        {/* TAB: INICIO */}
         {activeTab === 'inicio' && (
           <div className="space-y-6">
             <div>
@@ -229,7 +169,6 @@ const AdvisorDashboard = () => {
               </p>
             </div>
 
-            {/* STATS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Ingresos totales', value: `$${totalEarnings}`, icon: DollarSign },
@@ -245,7 +184,6 @@ const AdvisorDashboard = () => {
               ))}
             </div>
 
-            {/* PERFIL INCOMPLETO */}
             {!advisorData && !loading && (
               <GlassCard className="p-6 border-amber-400/20">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -267,7 +205,6 @@ const AdvisorDashboard = () => {
               </GlassCard>
             )}
 
-            {/* SOLICITUDES PENDIENTES */}
             {pendingSessions.length > 0 && (
               <div>
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-400 mb-4">
@@ -310,7 +247,6 @@ const AdvisorDashboard = () => {
               </div>
             )}
 
-            {/* PROXIMAS SESIONES */}
             {upcomingSessions.length > 0 && (
               <div>
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#10B981] mb-4">
@@ -352,11 +288,9 @@ const AdvisorDashboard = () => {
                 </p>
               </GlassCard>
             )}
-
           </div>
         )}
 
-        {/* TAB: SOLICITUDES */}
         {activeTab === 'solicitudes' && (
           <div className="space-y-6">
             <h1 className="text-2xl font-light text-white uppercase tracking-tight">
@@ -376,9 +310,7 @@ const AdvisorDashboard = () => {
                             {session.profiles?.full_name || 'Cliente'}
                           </p>
                           <p className="text-[#10B981] text-[10px] font-bold">{session.services?.name}</p>
-                          <p className="text-slate-500 text-[10px] mt-0.5">
-                            {session.profiles?.email}
-                          </p>
+                          <p className="text-slate-500 text-[10px] mt-0.5">{session.profiles?.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -409,13 +341,11 @@ const AdvisorDashboard = () => {
           </div>
         )}
 
-        {/* TAB: SESIONES */}
         {activeTab === 'sesiones' && (
           <div className="space-y-6">
             <h1 className="text-2xl font-light text-white uppercase tracking-tight">
               Historial de sesiones
             </h1>
-
             {sessions.length > 0 ? (
               <>
                 <div className="space-y-3">
@@ -450,12 +380,9 @@ const AdvisorDashboard = () => {
                     </GlassCard>
                   ))}
                 </div>
-
                 <GlassCard className="p-5 border-[#10B981]/10">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-xs uppercase tracking-wider font-bold">
-                      Total generado
-                    </span>
+                    <span className="text-slate-400 text-xs uppercase tracking-wider font-bold">Total generado</span>
                     <span className="text-[#10B981] font-black text-xl">${totalEarnings}</span>
                   </div>
                 </GlassCard>
@@ -463,15 +390,12 @@ const AdvisorDashboard = () => {
             ) : (
               <GlassCard className="p-12 border-white/5 text-center">
                 <Calendar size={32} className="text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-500 text-sm font-light">
-                  Aun no tienes sesiones registradas
-                </p>
+                <p className="text-slate-500 text-sm font-light">Aun no tienes sesiones registradas</p>
               </GlassCard>
             )}
           </div>
         )}
 
-        {/* TAB: PERFIL */}
         {activeTab === 'perfil' && (
           <div className="space-y-6">
             <div>
@@ -484,11 +408,13 @@ const AdvisorDashboard = () => {
             </div>
 
             <GlassCard className="p-8 border-white/5">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-16 h-16 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center text-[#10B981] font-black text-2xl">
-                  {firstName[0]}
-                </div>
-                <div>
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
+                <AvatarUpload
+                  currentUrl={advisorData?.avatar_url || profile?.avatar_url}
+                  onUploadComplete={(url) => setAdvisorData((prev: any) => ({ ...prev, avatar_url: url }))}
+                  size="lg"
+                />
+                <div className="text-center md:text-left">
                   <p className="text-white font-bold text-lg">{profile?.full_name}</p>
                   <p className="text-slate-500 text-xs mt-0.5">{profile?.email}</p>
                   {advisorData?.verified && (
@@ -496,6 +422,9 @@ const AdvisorDashboard = () => {
                       <CheckCircle size={11} /> Verificado
                     </span>
                   )}
+                  <p className="text-slate-600 text-[10px] mt-2 font-light">
+                    Tu foto aparecera en tu perfil publico del catalogo
+                  </p>
                 </div>
               </div>
 
@@ -513,7 +442,6 @@ const AdvisorDashboard = () => {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
                     />
                   </div>
-
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                       Especialidad
@@ -529,7 +457,6 @@ const AdvisorDashboard = () => {
                       ))}
                     </select>
                   </div>
-
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                       Tarifa por hora (USD)
@@ -542,7 +469,6 @@ const AdvisorDashboard = () => {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
                     />
                   </div>
-
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                       Anos de experiencia
@@ -555,7 +481,6 @@ const AdvisorDashboard = () => {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
                     />
                   </div>
-
                   <div>
                     <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
                       Idiomas
@@ -603,6 +528,9 @@ const AdvisorDashboard = () => {
         )}
 
       </div>
+
+      <DashboardFooter />
+
     </div>
   );
 };
