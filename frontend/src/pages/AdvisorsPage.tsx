@@ -1,223 +1,158 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Star, Clock, Filter, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, Star, Clock, ChevronDown } from 'lucide-react';
 import GlassCard from '../components/GlassCard';
+import { supabase } from '../lib/supabase';
 
 const CATEGORIES = [
   { id: 'todos', label: 'Todos' },
-  { id: 'finanzas', label: 'Finanzas' },
-  { id: 'negocios', label: 'Negocios' },
-  { id: 'datos', label: 'Datos & IA' },
-  { id: 'legal', label: 'Legal' },
-  { id: 'marketing', label: 'Marketing' },
-  { id: 'tecnologia', label: 'Tecnologia' },
-  { id: 'rrhh', label: 'Recursos Humanos' },
-  { id: 'startups', label: 'Startups' },
+  { id: 'Finanzas', label: 'Finanzas' },
+  { id: 'Negocios', label: 'Negocios' },
+  { id: 'Datos & IA', label: 'Datos & IA' },
+  { id: 'Legal', label: 'Legal' },
+  { id: 'Marketing', label: 'Marketing' },
+  { id: 'Tecnologia', label: 'Tecnologia' },
+  { id: 'Recursos Humanos', label: 'Recursos Humanos' },
+  { id: 'Startups', label: 'Startups' },
 ];
 
-const MOCK_ADVISORS = [
-  {
-    id: '1',
-    name: 'Carlos Mendoza',
-    title: 'CFO Independiente',
-    category: 'finanzas',
-    categoryLabel: 'Finanzas',
-    rating: 4.9,
-    reviews: 87,
-    rate: 80,
-    availability: 'Disponible hoy',
-    available: true,
-    tags: ['Flujo de caja', 'Inversiones', 'Startups'],
-    initials: 'CM',
-    color: '#0F4C35',
-  },
-  {
-    id: '2',
-    name: 'Andrea Torres',
-    title: 'Estratega de Negocios',
-    category: 'negocios',
-    categoryLabel: 'Negocios',
-    rating: 4.8,
-    reviews: 124,
-    rate: 95,
-    availability: 'Disponible manana',
-    available: false,
-    tags: ['Expansion', 'Operaciones', 'OKRs'],
-    initials: 'AT',
-    color: '#1A237E',
-  },
-  {
-    id: '3',
-    name: 'Luis Rojas',
-    title: 'Data Scientist Senior',
-    category: 'datos',
-    categoryLabel: 'Datos & IA',
-    rating: 5.0,
-    reviews: 43,
-    rate: 120,
-    availability: 'Disponible hoy',
-    available: true,
-    tags: ['Machine Learning', 'Power BI', 'Python'],
-    initials: 'LR',
-    color: '#4A148C',
-  },
-  {
-    id: '4',
-    name: 'Maria Gonzalez',
-    title: 'Abogada Corporativa',
-    category: 'legal',
-    categoryLabel: 'Legal',
-    rating: 4.7,
-    reviews: 61,
-    rate: 110,
-    availability: 'Disponible hoy',
-    available: true,
-    tags: ['Contratos', 'Compliance', 'M&A'],
-    initials: 'MG',
-    color: '#B71C1C',
-  },
-  {
-    id: '5',
-    name: 'Diego Paredes',
-    title: 'Growth Marketing Lead',
-    category: 'marketing',
-    categoryLabel: 'Marketing',
-    rating: 4.6,
-    reviews: 98,
-    rate: 70,
-    availability: 'Disponible manana',
-    available: false,
-    tags: ['SEO', 'Paid Media', 'Branding'],
-    initials: 'DP',
-    color: '#E65100',
-  },
-  {
-    id: '6',
-    name: 'Sofia Herrera',
-    title: 'CTO Fractional',
-    category: 'tecnologia',
-    categoryLabel: 'Tecnologia',
-    rating: 4.9,
-    reviews: 55,
-    rate: 140,
-    availability: 'Disponible hoy',
-    available: true,
-    tags: ['Arquitectura', 'Cloud', 'DevOps'],
-    initials: 'SH',
-    color: '#006064',
-  },
-  {
-    id: '7',
-    name: 'Roberto Vargas',
-    title: 'People & Culture Director',
-    category: 'rrhh',
-    categoryLabel: 'Recursos Humanos',
-    rating: 4.8,
-    reviews: 72,
-    rate: 75,
-    availability: 'Disponible hoy',
-    available: true,
-    tags: ['Talent', 'Cultura', 'Compensacion'],
-    initials: 'RV',
-    color: '#1B5E20',
-  },
-  {
-    id: '8',
-    name: 'Valeria Castro',
-    title: 'Startup Advisor & Investor',
-    category: 'startups',
-    categoryLabel: 'Startups',
-    rating: 4.9,
-    reviews: 39,
-    rate: 150,
-    availability: 'Disponible manana',
-    available: false,
-    tags: ['Fundraising', 'Pitch', 'Product'],
-    initials: 'VC',
-    color: '#880E4F',
-  },
-];
+const COLORS: Record<string, string> = {
+  'Finanzas': '#0F4C35',
+  'Negocios': '#1A237E',
+  'Datos & IA': '#4A148C',
+  'Legal': '#B71C1C',
+  'Marketing': '#E65100',
+  'Tecnologia': '#006064',
+  'Recursos Humanos': '#1B5E20',
+  'Startups': '#880E4F',
+};
 
-const AdvisorCard = ({ advisor }: { advisor: typeof MOCK_ADVISORS[0] }) => (
-  <Link to={`/asesores/${advisor.id}`}>
-    <GlassCard className="p-6 border-white/5 hover:border-[#10B981]/30 transition-all duration-500 group cursor-pointer h-full">
-      <div className="flex items-start justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
-            style={{ backgroundColor: advisor.color }}
-          >
-            {advisor.initials}
+const getInitials = (name: string) => {
+  if (!name) return 'A';
+  const parts = name.split(' ');
+  return parts.length >= 2 ? parts[0][0] + parts[1][0] : parts[0][0];
+};
+
+const AdvisorCard = ({ advisor }: { advisor: any }) => {
+  const color = COLORS[advisor.category] || '#0F4C35';
+  const name = advisor.profiles?.full_name || advisor.title || 'Asesor';
+  const initials = getInitials(name);
+  const avatarUrl = advisor.avatar_url || advisor.profiles?.avatar_url;
+
+  return (
+    <Link to={`/asesores/${advisor.id}`}>
+      <GlassCard className="p-6 border-white/5 hover:border-[#10B981]/30 transition-all duration-500 group cursor-pointer h-full">
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex items-center gap-3">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={name}
+                className="w-12 h-12 rounded-2xl object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+                style={{ backgroundColor: color }}
+              >
+                {initials.toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h3 className="text-white font-bold text-sm group-hover:text-[#10B981] transition-colors">
+                {name}
+              </h3>
+              <p className="text-slate-500 text-[11px]">{advisor.title}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-white font-bold text-sm group-hover:text-[#10B981] transition-colors">
-              {advisor.name}
-            </h3>
-            <p className="text-slate-500 text-[11px]">{advisor.title}</p>
-          </div>
-        </div>
-        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${advisor.available
-            ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
-            : 'bg-white/5 text-slate-500 border border-white/10'
+          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full flex-shrink-0 ${
+            advisor.available
+              ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
+              : 'bg-white/5 text-slate-500 border border-white/10'
           }`}>
-          {advisor.available ? 'Disponible' : 'Ocupado'}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-4 mb-5">
-        <div className="flex items-center gap-1">
-          <Star size={12} className="text-[#10B981] fill-[#10B981]" />
-          <span className="text-white text-xs font-bold">{advisor.rating}</span>
-          <span className="text-slate-500 text-[10px]">({advisor.reviews})</span>
-        </div>
-        <div className="flex items-center gap-1 text-slate-500">
-          <Clock size={11} />
-          <span className="text-[10px]">{advisor.availability}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-5">
-        {advisor.tags.map((tag) => (
-          <span
-            key={tag}
-            className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-white/5 text-slate-400 rounded-lg border border-white/5"
-          >
-            {tag}
+            {advisor.available ? 'Disponible' : 'Ocupado'}
           </span>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-white/5">
-        <div>
-          <span className="text-white font-bold text-base">${advisor.rate}</span>
-          <span className="text-slate-500 text-[10px]"> / hora</span>
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981] group-hover:gap-2 transition-all">
-          Ver perfil
-        </span>
-      </div>
-    </GlassCard>
-  </Link>
-);
+
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-1">
+            <Star size={12} className="text-[#10B981] fill-[#10B981]" />
+            <span className="text-white text-xs font-bold">{Number(advisor.rating || 5).toFixed(1)}</span>
+            <span className="text-slate-500 text-[10px]">({advisor.total_reviews || 0})</span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-500">
+            <Clock size={11} />
+            <span className="text-[10px]">{advisor.total_sessions || 0}+ sesiones</span>
+          </div>
+        </div>
+
+        {advisor.tags && advisor.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {advisor.tags.slice(0, 3).map((tag: string) => (
+              <span
+                key={tag}
+                className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-white/5 text-slate-400 rounded-lg border border-white/5"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+          <div>
+            <span className="text-white font-bold text-base">${advisor.rate}</span>
+            <span className="text-slate-500 text-[10px]"> / hora</span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
+            Ver perfil
+          </span>
+        </div>
+      </GlassCard>
+    </Link>
+  );
+};
 
 const AdvisorsPage = () => {
+  const [searchParams] = useSearchParams();
+  const [advisors, setAdvisors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('todos');
+  const [activeCategory, setActiveCategory] = useState(
+    searchParams.get('categoria') || 'todos'
+  );
   const [sortBy, setSortBy] = useState('rating');
 
-  const filtered = MOCK_ADVISORS
+  useEffect(() => {
+    fetchAdvisors();
+  }, []);
+
+  const fetchAdvisors = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('advisors')
+      .select('*, profiles ( full_name, avatar_url )')
+      .order('rating', { ascending: false });
+
+    if (!error && data) setAdvisors(data);
+    setLoading(false);
+  };
+
+  const filtered = advisors
     .filter((a) => {
       const matchCategory = activeCategory === 'todos' || a.category === activeCategory;
+      const name = a.profiles?.full_name || a.title || '';
       const matchSearch =
-        a.name.toLowerCase().includes(search.toLowerCase()) ||
-        a.title.toLowerCase().includes(search.toLowerCase()) ||
-        a.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()));
+        name.toLowerCase().includes(search.toLowerCase()) ||
+        (a.title || '').toLowerCase().includes(search.toLowerCase()) ||
+        (a.category || '').toLowerCase().includes(search.toLowerCase()) ||
+        (a.tags || []).some((t: string) => t.toLowerCase().includes(search.toLowerCase()));
       return matchCategory && matchSearch;
     })
     .sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
-      if (sortBy === 'precio_asc') return a.rate - b.rate;
-      if (sortBy === 'precio_desc') return b.rate - a.rate;
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'precio_asc') return (a.rate || 0) - (b.rate || 0);
+      if (sortBy === 'precio_desc') return (b.rate || 0) - (a.rate || 0);
       return 0;
     });
 
@@ -225,7 +160,6 @@ const AdvisorsPage = () => {
     <div className="min-h-screen pt-28 pb-20 px-6">
       <div className="max-w-7xl mx-auto">
 
-        {/* HEADER */}
         <div className="mb-10">
           <p className="text-[10px] font-bold tracking-[0.4em] text-[#10B981] uppercase mb-3">
             Directorio profesional
@@ -234,11 +168,10 @@ const AdvisorsPage = () => {
             Encuentra tu <span className="text-[#10B981] font-normal">asesor ideal</span>
           </h1>
           <p className="text-slate-500 text-sm font-light">
-            {MOCK_ADVISORS.length} asesores verificados disponibles
+            {loading ? 'Cargando asesores...' : `${advisors.length} asesores verificados disponibles`}
           </p>
         </div>
 
-        {/* BÚSQUEDA + ORDENAR */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -264,24 +197,29 @@ const AdvisorsPage = () => {
           </div>
         </div>
 
-        {/* FILTROS POR CATEGORÍA */}
         <div className="flex flex-wrap gap-2 mb-10">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${activeCategory === cat.id
+              className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                activeCategory === cat.id
                   ? 'bg-[#10B981] text-[#0A0E27]'
                   : 'bg-white/5 text-slate-400 border border-white/10 hover:border-[#10B981]/30 hover:text-white'
-                }`}
+              }`}
             >
               {cat.label}
             </button>
           ))}
         </div>
 
-        {/* GRID DE ASESORES */}
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-64 rounded-2xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filtered.map((advisor) => (
               <AdvisorCard key={advisor.id} advisor={advisor} />
