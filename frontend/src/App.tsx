@@ -18,6 +18,10 @@ import ClientDashboard from './pages/ClientDashboard';
 import AdvisorDashboard from './pages/AdvisorDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import PlansPage from './pages/PlansPage';
+import CheckoutPage from './pages/CheckoutPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelledPage from './pages/PaymentCancelledPage';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -91,6 +95,36 @@ const AnimatedRoutes = () => {
             <ProtectedRoute role="asesor">
               <PageTransition><AdvisorDashboard /></PageTransition>
             </ProtectedRoute>
+          </CleanLayout>
+        } />
+
+        <Route path="/planes/:advisorId/:sessionId" element={
+          <CleanLayout><PageTransition><PlansPage /></PageTransition></CleanLayout>
+        } />
+
+        <Route path="/planes" element={
+          <CleanLayout>
+            <PageTransition>
+              <PlansPage /></PageTransition>
+          </CleanLayout>
+        } />
+
+        <Route path="/checkout/:planType/:advisorId/:sessionId" element={
+          <CleanLayout>
+            <PageTransition>
+              <CheckoutPage /></PageTransition>
+          </CleanLayout>
+        } />
+
+        <Route path="/pago/exito" element={
+          <CleanLayout>
+            <PageTransition><PaymentSuccessPage /></PageTransition>
+          </CleanLayout>
+        } />
+
+        <Route path="/pago/cancelado" element={
+          <CleanLayout>
+            <PageTransition><PaymentCancelledPage /></PageTransition>
           </CleanLayout>
         } />
 

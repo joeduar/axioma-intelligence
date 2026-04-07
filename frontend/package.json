@@ -10,6 +10,8 @@
     "sp": "git add . && git commit -m \"Actualización de desarrollo\" && git push origin main"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.1.0",
+    "@stripe/stripe-js": "^9.1.0",
     "@supabase/supabase-js": "^2.101.1",
     "clsx": "^2.1.0",
     "framer-motion": "^12.33.0",
