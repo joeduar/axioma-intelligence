@@ -11,6 +11,7 @@ import DashboardFooter from '../components/DashboardFooter';
 import AvatarUpload from '../components/AvatarUpload';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import ChatModule from '../components/ChatModule';
 
 const AdvisorDashboard = () => {
   const { user, profile } = useAuth();
@@ -334,12 +335,11 @@ const AdvisorDashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                              session.status === 'completada' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${session.status === 'completada' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
                               : session.status === 'confirmada' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                              : session.status === 'pendiente' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                            }`}>
+                                : session.status === 'pendiente' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              }`}>
                               {session.status}
                             </span>
                             <span className="text-white font-bold text-sm">${session.price}</span>
@@ -365,14 +365,9 @@ const AdvisorDashboard = () => {
           )}
 
           {activeTab === 'mensajes' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <h1 className="text-2xl font-light text-white uppercase tracking-tight">Mensajes</h1>
-              <GlassCard className="p-12 border-white/5 text-center">
-                <MessageCircle size={32} className="text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-500 text-sm font-light">
-                  El modulo de chat estara disponible proximamente.
-                </p>
-              </GlassCard>
+              <ChatModule role="asesor" />
             </div>
           )}
 
@@ -462,12 +457,7 @@ const AdvisorDashboard = () => {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">Tarifa por hora (USD)</label>
-                      <input type="number" value={formRate} onChange={(e) => setFormRate(e.target.value)}
-                        placeholder="Ej: 80"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors" />
-                    </div>
+
                     <div>
                       <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">Anos de experiencia</label>
                       <input type="text" value={formExperience} onChange={(e) => setFormExperience(e.target.value)}

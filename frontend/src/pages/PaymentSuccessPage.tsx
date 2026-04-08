@@ -84,6 +84,55 @@ const PaymentSuccessPage = () => {
       status: 'completado',
       plan_type: planType,
     });
+
+    if (advisorId && advisorId !== 'general') {
+      await supabase
+        .from('conversations')
+        .upsert({
+          client_id: user.id,
+          advisor_id: advisorId,
+        }, { onConflict: 'client_id,advisor_id' });
+
+      if (user.id) {
+        await supabase.from('notifications').insert({
+          user_id: user.id,
+          message: 'Tu plan fue activado. Ya puedes chatear con tu asesor desde Mensajes.',
+          type: 'pago',
+        });
+      }
+    }
+
+    const planNames: Record<string, string> = {
+      sesion_inicial: 'Sesion Inicial',
+      plan_completo: 'Plan Completo',
+    };
+    const durations: Record<string, string> = {
+      sesion_inicial: '30 minutos',
+      plan_completo: '4 sesiones de 60 minutos',
+    };
+
+    const supabaseUrl = 'https://bcwsygdipoyrhonzqyvg.supabase.co';
+    const supabaseKey = 'sb_publishable_CL_mM0jG6uwrxRt2_IeRnA_uoButs_y';
+
+    await fetch(
+      `${supabaseUrl}/functions/v1/send-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({
+          type: 'pago',
+          to: profile?.email || user?.email,
+          name: profile?.full_name || 'Cliente',
+          planName: planNames[planType] || planType,
+          price: plan?.price,
+          advisorName: advisor?.profiles?.full_name || 'Asesor Axioma',
+          duration: durations[planType] || '',
+        }),
+      }
+    );
   };
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Cliente';

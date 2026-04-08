@@ -34,6 +34,26 @@ const RegisterPage = () => {
       return;
     }
 
+    const supabaseUrl = 'https://bcwsygdipoyrhonzqyvg.supabase.co';
+    const supabaseKey = 'sb_publishable_CL_mM0jG6uwrxRt2_IeRnA_uoButs_y';
+
+    await fetch(
+      `${supabaseUrl}/functions/v1/send-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({
+          type: 'registro',
+          to: email,
+          name,
+          role,
+        }),
+      }
+    );
+
     setSuccess(true);
     setLoading(false);
   };

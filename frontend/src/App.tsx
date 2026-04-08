@@ -22,6 +22,7 @@ import PlansPage from './pages/PlansPage';
 import CheckoutPage from './pages/CheckoutPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
+import AuthPage from './pages/AuthPage';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -75,11 +76,11 @@ const AnimatedRoutes = () => {
         } />
 
         <Route path="/login" element={
-          <CleanLayout><PageTransition><LoginPage /></PageTransition></CleanLayout>
+          <CleanLayout><AuthPage /></CleanLayout>
         } />
 
         <Route path="/registro" element={
-          <CleanLayout><PageTransition><RegisterPage /></PageTransition></CleanLayout>
+          <CleanLayout><AuthPage /></CleanLayout>
         } />
 
         <Route path="/dashboard/cliente" element={

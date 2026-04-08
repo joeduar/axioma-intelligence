@@ -40,7 +40,7 @@ const Sidebar: React.FC<Props> = ({ role, pendingCount = 0, onNavigate, activeTa
 
   const advisorItems: NavItem[] = [
     { label: 'Inicio', path: 'inicio', icon: <LayoutDashboard size={18} /> },
-    { label: 'Solicitudes', path: 'solicitudes', icon: <Bell size={18} />, badge: pendingCount },
+    { label: 'Solicitudes', path: 'solicitudes', icon: <Bell size={18} />, badge: pendingCount > 0 ? pendingCount : undefined },
     { label: 'Sesiones', path: 'sesiones', icon: <Calendar size={18} /> },
     { label: 'Mensajes', path: 'mensajes', icon: <MessageCircle size={18} /> },
     { label: 'Ingresos', path: 'ingresos', icon: <DollarSign size={18} /> },

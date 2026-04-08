@@ -8,6 +8,124 @@ import DashboardFooter from '../components/DashboardFooter';
 import AvatarUpload from '../components/AvatarUpload';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import ChatModule from '../components/ChatModule';
+
+const ClientProfileForm = () => {
+  const { user, profile } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [phone, setPhone] = useState(profile?.phone || '');
+  const [country, setCountry] = useState(profile?.country || '');
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSuccess(false);
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        phone,
+        country,
+        bio,
+      })
+      .eq('id', user?.id);
+
+    if (updateError) {
+      setError('Error al guardar. Intenta de nuevo.');
+    } else {
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <form onSubmit={handleSave} className="space-y-5 border-t border-white/5 pt-6">
+      <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-2">
+        Editar informacion
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <div>
+          <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
+            Nombre completo
+          </label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Tu nombre completo"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
+            Telefono / WhatsApp
+          </label>
+          <input
+            type="text"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+58 424 0000000"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
+            Pais
+          </label>
+          <input
+            type="text"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            placeholder="Venezuela, Colombia, etc."
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500 block mb-2">
+          Sobre ti (opcional)
+        </label>
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          placeholder="Cuéntanos brevemente sobre ti, tu empresa o lo que buscas en la plataforma..."
+          rows={3}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:border-[#10B981]/40 focus:outline-none transition-colors resize-none"
+        />
+      </div>
+
+      {error && (
+        <p className="text-red-400 text-[11px] font-bold uppercase tracking-wider">{error}</p>
+      )}
+
+      <div className="flex items-center gap-4">
+        <button
+          type="submit"
+          disabled={saving}
+          className="bg-[#10B981] text-[#0A0E27] font-black py-3 px-8 rounded-xl uppercase tracking-[0.15em] text-[10px] hover:bg-[#0ea371] transition-all disabled:opacity-50"
+        >
+          {saving ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+        {success && (
+          <span className="flex items-center gap-1.5 text-[#10B981] text-[11px] font-bold uppercase tracking-wider">
+            <CheckCircle size={14} /> Guardado correctamente
+          </span>
+        )}
+      </div>
+    </form>
+  );
+};
 
 const ClientDashboard = () => {
   const { user, profile } = useAuth();
@@ -130,11 +248,10 @@ const ClientDashboard = () => {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-white font-bold text-sm">${sub.amount_paid}</span>
-                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                              sub.status === 'activa'
-                                ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
-                                : 'bg-white/5 text-slate-500 border border-white/10'
-                            }`}>
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${sub.status === 'activa'
+                              ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
+                              : 'bg-white/5 text-slate-500 border border-white/10'
+                              }`}>
                               {sub.status}
                             </span>
                           </div>
@@ -168,11 +285,10 @@ const ClientDashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                              session.status === 'confirmada'
-                                ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            }`}>
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${session.status === 'confirmada'
+                              ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              }`}>
                               {session.status}
                             </span>
                             <span className="text-white font-bold text-sm">${session.price}</span>
@@ -234,12 +350,11 @@ const ClientDashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                            session.status === 'completada' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${session.status === 'completada' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
                             : session.status === 'confirmada' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                            : session.status === 'pendiente' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}>
+                              : session.status === 'pendiente' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            }`}>
                             {session.status}
                           </span>
                           <span className="text-white font-bold text-sm">${session.price}</span>
@@ -280,13 +395,9 @@ const ClientDashboard = () => {
           )}
 
           {activeTab === 'mensajes' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <h1 className="text-2xl font-light text-white uppercase tracking-tight">Mensajes</h1>
-              <GlassCard className="p-12 border-white/5 text-center">
-                <p className="text-slate-500 text-sm font-light">
-                  El modulo de chat estara disponible una vez tengas un plan activo con un asesor.
-                </p>
-              </GlassCard>
+              <ChatModule role="cliente" />
             </div>
           )}
 
@@ -296,11 +407,12 @@ const ClientDashboard = () => {
                 <h1 className="text-2xl font-light text-white uppercase tracking-tight">Mi perfil</h1>
                 <p className="text-slate-500 text-sm font-light mt-1">Gestiona tu informacion personal</p>
               </div>
+
               <GlassCard className="p-8 border-white/5">
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                   <AvatarUpload
                     currentUrl={profile?.avatar_url}
-                    onUploadComplete={() => {}}
+                    onUploadComplete={() => { }}
                     size="lg"
                   />
                   <div className="text-center md:text-left">
@@ -309,14 +421,13 @@ const ClientDashboard = () => {
                     <span className="inline-block mt-2 text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
                       Cliente
                     </span>
-                    <p className="text-slate-600 text-[10px] mt-2 font-light">
-                      Tu foto es visible para los asesores con quienes tengas sesiones
-                    </p>
                   </div>
                 </div>
+                <ClientProfileForm />
               </GlassCard>
             </div>
           )}
+
 
         </main>
 
