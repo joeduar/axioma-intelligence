@@ -150,10 +150,16 @@ const AnimatedRoutes = () => {
 };
 
 export default function App() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // Solo muestra loading si es la primera vez en esta sesion del navegador
+    return !sessionStorage.getItem('app_loaded');
+  });
 
   if (loading) {
-    return <LoadingScreen onAccess={() => setLoading(false)} />;
+    return <LoadingScreen onAccess={() => {
+      sessionStorage.setItem('app_loaded', 'true');
+      setLoading(false);
+    }} />;
   }
 
   return (

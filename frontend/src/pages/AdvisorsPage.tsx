@@ -65,11 +65,10 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
               <p className="text-slate-500 text-[11px]">{advisor.title}</p>
             </div>
           </div>
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full flex-shrink-0 ${
-            advisor.available
+          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full flex-shrink-0 ${advisor.available
               ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
               : 'bg-white/5 text-slate-500 border border-white/10'
-          }`}>
+            }`}>
             {advisor.available ? 'Disponible' : 'Ocupado'}
           </span>
         </div>
@@ -100,12 +99,11 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
         )}
 
         <div className="flex items-center justify-between pt-4 border-t border-white/5">
-          <div>
-            <span className="text-white font-bold text-base">${advisor.rate}</span>
-            <span className="text-slate-500 text-[10px]"> / hora</span>
-          </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
+            {advisor.category}
+          </span>
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
-            Ver perfil
+            Ver perfil →
           </span>
         </div>
       </GlassCard>
@@ -202,11 +200,10 @@ const AdvisorsPage = () => {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
-                activeCategory === cat.id
+              className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${activeCategory === cat.id
                   ? 'bg-[#10B981] text-[#0A0E27]'
                   : 'bg-white/5 text-slate-400 border border-white/10 hover:border-[#10B981]/30 hover:text-white'
-              }`}
+                }`}
             >
               {cat.label}
             </button>

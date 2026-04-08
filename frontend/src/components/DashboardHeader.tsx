@@ -5,6 +5,7 @@ import {
   ChevronDown, X, CheckCircle, User
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import LogoutScreen from './LogoutScreen';
 
 interface Props {
   onSettingsClick?: () => void;
@@ -41,6 +42,7 @@ const DashboardHeader: React.FC<Props> = ({ onSettingsClick, role, pendingCount 
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Usuario';
   const unreadCount = notifications.filter(n => !n.read).length + pendingCount;
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -56,10 +58,10 @@ const DashboardHeader: React.FC<Props> = ({ onSettingsClick, role, pendingCount 
   }, []);
 
   const handleLogout = async () => {
+    setShowUserMenu(false);
+    setLoggingOut(true);
     await signOut();
-    navigate('/');
   };
-
   const markAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
@@ -186,16 +188,18 @@ const DashboardHeader: React.FC<Props> = ({ onSettingsClick, role, pendingCount 
               }}
               className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-[#10B981]/30 transition-all"
             >
-              <div className="w-7 h-7 rounded-lg bg-[#10B981]/20 flex items-center justify-center">
-                <span className="text-[#10B981] text-[11px] font-black">
-                  {firstName[0].toUpperCase()}
-                </span>
-              </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-white text-[11px] font-bold leading-none">{firstName}</p>
-                <p className="text-slate-500 text-[9px] uppercase tracking-wider mt-0.5">
-                  {role}
-                </p>
+              <div className="w-7 h-7 rounded-lg bg-[#10B981]/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={firstName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[#10B981] text-[11px] font-black">
+                    {firstName[0].toUpperCase()}
+                  </span>
+                )}
               </div>
               <ChevronDown
                 size={13}
@@ -215,12 +219,12 @@ const DashboardHeader: React.FC<Props> = ({ onSettingsClick, role, pendingCount 
 
                 <div className="py-1">
                   <Link
-                    to="/"
+                    to={role === 'asesor' ? '/dashboard/asesor' : '/dashboard/cliente'}
                     onClick={() => setShowUserMenu(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider"
                   >
                     <LayoutDashboard size={14} className="text-[#10B981]" />
-                    Ir al inicio
+                    Mi dashboard
                   </Link>
 
                   {role === 'cliente' && (
@@ -263,6 +267,9 @@ const DashboardHeader: React.FC<Props> = ({ onSettingsClick, role, pendingCount 
               </div>
             )}
           </div>
+          {loggingOut && (
+            <LogoutScreen onComplete={() => navigate('/')} />
+          )}
 
         </div>
       </div>

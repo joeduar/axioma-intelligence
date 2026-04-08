@@ -68,6 +68,26 @@ const AvatarUpload: React.FC<Props> = ({ currentUrl, onUploadComplete, size = 'l
     onUploadComplete(publicUrl);
     setUploading(false);
   };
+  const handleDelete = async () => {
+    if (!user) return;
+    setUploading(true);
+
+    const extensions = ['jpg', 'jpeg', 'png', 'webp'];
+    for (const ext of extensions) {
+      await supabase.storage
+        .from('avatars')
+        .remove([`${user.id}/avatar.${ext}`]);
+    }
+
+    await supabase
+      .from('profiles')
+      .update({ avatar_url: null })
+      .eq('id', user.id);
+
+    setPreview(null);
+    onUploadComplete('');
+    setUploading(false);
+  };
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -114,14 +134,27 @@ const AvatarUpload: React.FC<Props> = ({ currentUrl, onUploadComplete, size = 'l
         className="hidden"
       />
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-[#10B981] transition-colors disabled:opacity-50"
-      >
-        {uploading ? 'Subiendo...' : 'Cambiar foto'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-[#10B981] transition-colors disabled:opacity-50"
+        >
+          {uploading ? 'Subiendo...' : 'Cambiar foto'}
+        </button>
+
+        {preview && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={uploading}
+            className="text-[9px] font-bold uppercase tracking-[0.2em] text-red-500/50 hover:text-red-400 transition-colors disabled:opacity-50"
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
 
       {error && (
         <p className="text-red-400 text-[10px] font-bold uppercase tracking-wider text-center">

@@ -177,19 +177,36 @@ const AdvisorProfilePage = () => {
 
             {services.length > 0 && (
               <GlassCard className="p-8 border-white/5">
-                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-5">Servicios disponibles</h2>
+                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-5">
+                  Planes disponibles
+                </h2>
                 <div className="space-y-3">
-                  {services.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                  <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-white text-sm font-bold">{service.name}</p>
-                        <p className="text-slate-500 text-[10px] mt-0.5">{service.description}</p>
-                        <p className="text-slate-600 text-[9px] mt-1 uppercase tracking-wider">{service.duration}</p>
+                        <p className="text-white text-sm font-bold mb-1">Sesión Inicial</p>
+                        <p className="text-slate-500 text-[10px] leading-relaxed">
+                          30 minutos con el asesor. Diagnóstico inicial y plan de acción básico.
+                        </p>
                       </div>
-                      <span className="text-white font-bold text-lg flex-shrink-0 ml-4">${service.price}</span>
+                      <span className="text-blue-400 font-black text-lg flex-shrink-0">$19</span>
                     </div>
-                  ))}
+                  </div>
+                  <div className="p-4 rounded-xl border border-[#10B981]/30 bg-[#10B981]/5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-white text-sm font-bold mb-1">Plan Completo</p>
+                        <p className="text-slate-500 text-[10px] leading-relaxed">
+                          4 sesiones de 60 min. Estrategia personalizada, chat directo por 30 días y seguimiento mensual.
+                        </p>
+                      </div>
+                      <span className="text-[#10B981] font-black text-lg flex-shrink-0">$149</span>
+                    </div>
+                  </div>
                 </div>
+                <p className="text-slate-600 text-[9px] uppercase tracking-wider mt-4 text-center">
+                  Todos los planes incluyen acceso completo a las herramientas de la plataforma
+                </p>
               </GlassCard>
             )}
 

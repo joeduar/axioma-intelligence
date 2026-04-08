@@ -43,13 +43,13 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
-        ? 'py-3 bg-[#0A0E27]/95 backdrop-blur-xl border-b border-[#10B981]/10'
-        : 'py-5 bg-transparent'
+      ? 'py-3 bg-[#0A0E27]/95 backdrop-blur-xl border-b border-[#10B981]/10'
+      : 'py-5 bg-transparent'
       }`}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
 
         {/* LOGO */}
-        <Link to="/" className="flex items-center gap-3 group">
+        <Link to={user ? (profile?.role === 'asesor' ? '/dashboard/asesor' : '/dashboard/cliente') : '/'} className="flex items-center gap-3 group">
           <img
             src="/favicon.png"
             alt="Axioma Logo"
