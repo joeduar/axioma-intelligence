@@ -84,19 +84,15 @@ const AnimatedRoutes = () => {
         } />
 
         <Route path="/dashboard/cliente" element={
-          <CleanLayout>
-            <ProtectedRoute role="cliente">
-              <PageTransition><ClientDashboard /></PageTransition>
-            </ProtectedRoute>
-          </CleanLayout>
+          <ProtectedRoute role="cliente">
+            <ClientDashboard />
+          </ProtectedRoute>
         } />
 
         <Route path="/dashboard/asesor" element={
-          <CleanLayout>
-            <ProtectedRoute role="asesor">
-              <PageTransition><AdvisorDashboard /></PageTransition>
-            </ProtectedRoute>
-          </CleanLayout>
+          <ProtectedRoute role="asesor">
+            <AdvisorDashboard />
+          </ProtectedRoute>
         } />
 
         <Route path="/planes/:advisorId/:sessionId" element={
