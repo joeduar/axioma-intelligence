@@ -100,7 +100,7 @@ const CheckoutPage = () => {
             sessionId: sessionId !== 'none' ? sessionId : null,
             clientEmail: profile?.email || user.email,
             planType,
-            successUrl: `${window.location.origin}/pago/exito?plan=${planType}&advisor=${advisorId}`,
+            successUrl: `${window.location.origin}/pago/exito?plan=${planType}&advisor=${advisorId}&session_id={CHECKOUT_SESSION_ID}`,
             cancelUrl: `${window.location.origin}/pago/cancelado`,
           }),
         }

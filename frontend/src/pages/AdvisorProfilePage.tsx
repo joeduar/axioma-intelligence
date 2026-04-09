@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Clock, Shield, ArrowLeft, Calendar, MessageCircle } from 'lucide-react';
-import GlassCard from '../components/GlassCard';
+import { Star, Clock, Shield, ArrowLeft, Calendar, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -67,11 +66,10 @@ const AdvisorProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-white pt-32 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <img src="/favicon.png" alt="Axioma" className="w-10 h-10 object-contain animate-pulse"
-            style={{ filter: 'drop-shadow(0 0 12px rgba(16,185,129,0.4))' }} />
-          <p className="text-slate-500 text-[10px] uppercase tracking-widest animate-pulse">Cargando perfil...</p>
+          <img src="/favicon.png" alt="Axioma" className="w-10 h-10 object-contain animate-pulse" />
+          <p className="text-gray-400 text-[10px] uppercase tracking-widest">Cargando perfil...</p>
         </div>
       </div>
     );
@@ -79,11 +77,11 @@ const AdvisorProfilePage = () => {
 
   if (!advisor) {
     return (
-      <div className="min-h-screen pt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-white pt-32 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-500 uppercase tracking-widest text-sm mb-4">Asesor no encontrado</p>
-          <Link to="/asesores" className="text-[#10B981] text-[11px] font-bold uppercase tracking-wider">
-            Volver al catalogo
+          <p className="text-gray-400 uppercase tracking-widest text-sm mb-4">Asesor no encontrado</p>
+          <Link to="/asesores" className="text-[#10B981] text-sm font-semibold hover:underline">
+            Volver al catálogo
           </Link>
         </div>
       </div>
@@ -94,205 +92,212 @@ const AdvisorProfilePage = () => {
   const avatarUrl = advisor.profiles?.avatar_url || advisor.avatar_url;
   const color = COLORS[advisor.category] || '#0F4C35';
   const initials = getInitials(name);
+  const hasRating = (advisor.total_reviews || 0) > 0;
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#f8f9fa] pt-24 pb-20">
+      <div className="max-w-6xl mx-auto px-6">
 
-        <Link to="/asesores" className="inline-flex items-center gap-2 text-slate-500 hover:text-white text-[11px] font-bold uppercase tracking-wider mb-8 transition-colors">
-          <ArrowLeft size={14} /> Volver al catalogo
+        {/* Back */}
+        <Link
+          to="/asesores"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-[#0A0E27] text-sm font-medium mb-8 transition-colors"
+        >
+          <ArrowLeft size={15} />
+          Volver al catálogo
         </Link>
 
         <div className="grid lg:grid-cols-3 gap-8">
 
-          <div className="lg:col-span-2 space-y-6">
+          {/* ─── LEFT COLUMN ─── */}
+          <div className="lg:col-span-2 space-y-5">
 
-            <GlassCard className="p-8 border-white/5">
+            {/* Hero card */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
               <div className="flex items-start gap-6">
-                <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl flex-shrink-0 overflow-hidden"
-                  style={{ backgroundColor: color }}>
-                  {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : initials}
+
+                {/* Avatar */}
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-2xl flex-shrink-0 overflow-hidden shadow-md"
+                  style={{ backgroundColor: color }}
+                >
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                    : initials}
                 </div>
-                <div className="flex-1">
+
+                <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between flex-wrap gap-3">
                     <div>
-                      <h1 className="text-2xl font-bold text-white mb-1">{name}</h1>
+                      <h1 className="text-2xl font-bold text-[#0A0E27] mb-0.5">{name}</h1>
                       <p className="text-[#10B981] text-sm font-medium">{advisor.title}</p>
-                      <p className="text-slate-500 text-xs mt-1">{advisor.category}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">{advisor.category}</p>
                     </div>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${advisor.available ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20' : 'bg-white/5 text-slate-500 border border-white/10'}`}>
-                      {advisor.available ? 'Disponible hoy' : 'No disponible'}
+                    <span className={`text-[10px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 ${
+                      advisor.available
+                        ? 'bg-[#10B981]/10 text-[#10B981]'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${advisor.available ? 'bg-[#10B981]' : 'bg-gray-300'}`} />
+                      {advisor.available ? 'Disponible' : 'No disponible'}
                     </span>
                   </div>
+
                   <div className="flex flex-wrap items-center gap-4 mt-4">
-                    <div className="flex items-center gap-1.5">
-                      <Star size={14} className="text-[#10B981] fill-[#10B981]" />
-                      <span className="text-white font-bold text-sm">{advisor.rating?.toFixed(1) || '5.0'}</span>
-                      <span className="text-slate-500 text-xs">({advisor.total_reviews || 0} resenas)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-500">
+                    {hasRating && (
+                      <div className="flex items-center gap-1.5">
+                        <Star size={13} className="text-[#10B981] fill-[#10B981]" />
+                        <span className="text-[#0A0E27] font-bold text-sm">{advisor.rating?.toFixed(1)}</span>
+                        <span className="text-gray-400 text-xs">({advisor.total_reviews} reseñas)</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-gray-400">
                       <Clock size={13} />
                       <span className="text-xs">{advisor.total_sessions || 0}+ sesiones</span>
                     </div>
                     {advisor.verified && (
                       <div className="flex items-center gap-1.5">
                         <Shield size={13} className="text-[#10B981]" />
-                        <span className="text-xs text-[#10B981]">Verificado</span>
+                        <span className="text-xs text-[#10B981] font-medium">Verificado</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-            </GlassCard>
+            </div>
 
+            {/* Bio */}
             {advisor.bio && (
-              <GlassCard className="p-8 border-white/5">
-                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-4">Acerca del asesor</h2>
-                <p className="text-slate-300 text-sm leading-relaxed font-light">{advisor.bio}</p>
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/5">
+              <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+                <h2 className="text-sm font-semibold text-gray-500 mb-4">Acerca del asesor</h2>
+                <p className="text-gray-600 text-sm leading-relaxed">{advisor.bio}</p>
+                <div className="grid grid-cols-3 gap-6 mt-6 pt-6 border-t border-gray-100">
                   {[
                     { label: 'Experiencia', value: advisor.experience },
-                    { label: 'Sesiones', value: `${advisor.total_sessions || 0}+` },
+                    { label: 'Sesiones completadas', value: advisor.total_sessions ? `${advisor.total_sessions}+` : null },
                     { label: 'Idiomas', value: advisor.languages },
                   ].filter(item => item.value).map((item) => (
                     <div key={item.label}>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1">{item.label}</p>
-                      <p className="text-white text-xs font-medium">{item.value}</p>
+                      <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+                      <p className="text-[#0A0E27] text-sm font-semibold">{item.value}</p>
                     </div>
                   ))}
                 </div>
-              </GlassCard>
+              </div>
             )}
 
+            {/* Specialties */}
             {advisor.tags && advisor.tags.length > 0 && (
-              <GlassCard className="p-8 border-white/5">
-                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-5">Especialidades</h2>
+              <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+                <h2 className="text-sm font-semibold text-gray-500 mb-5">Especialidades</h2>
                 <div className="flex flex-wrap gap-2">
                   {advisor.tags.map((tag: string) => (
-                    <span key={tag} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 text-slate-300 rounded-lg border border-white/5">{tag}</span>
+                    <span
+                      key={tag}
+                      className="text-[11px] font-semibold px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg border border-gray-100"
+                    >
+                      {tag}
+                    </span>
                   ))}
                 </div>
-              </GlassCard>
+              </div>
             )}
 
-            {services.length > 0 && (
-              <GlassCard className="p-8 border-white/5">
-                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-5">
-                  Planes disponibles
-                </h2>
-                <div className="space-y-3">
-                  <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-white text-sm font-bold mb-1">Sesión Inicial</p>
-                        <p className="text-slate-500 text-[10px] leading-relaxed">
-                          30 minutos con el asesor. Diagnóstico inicial y plan de acción básico.
-                        </p>
-                      </div>
-                      <span className="text-blue-400 font-black text-lg flex-shrink-0">$19</span>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-xl border border-[#10B981]/30 bg-[#10B981]/5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-white text-sm font-bold mb-1">Plan Completo</p>
-                        <p className="text-slate-500 text-[10px] leading-relaxed">
-                          4 sesiones de 60 min. Estrategia personalizada, chat directo por 30 días y seguimiento mensual.
-                        </p>
-                      </div>
-                      <span className="text-[#10B981] font-black text-lg flex-shrink-0">$149</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-slate-600 text-[9px] uppercase tracking-wider mt-4 text-center">
-                  Todos los planes incluyen acceso completo a las herramientas de la plataforma
-                </p>
-              </GlassCard>
-            )}
-
-            <GlassCard className="p-8 border-white/5">
-              <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-6">Resenas de clientes</h2>
+            {/* Reviews */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+              <h2 className="text-sm font-semibold text-gray-500 mb-6">Reseñas de clientes</h2>
               {reviews.length > 0 ? (
                 <div className="space-y-5">
                   {reviews.map((review) => (
-                    <div key={review.id} className="pb-5 border-b border-white/5 last:border-0 last:pb-0">
+                    <div key={review.id} className="pb-5 border-b border-gray-100 last:border-0 last:pb-0">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[11px] font-bold text-[#0A0E27] overflow-hidden">
                             {review.profiles?.avatar_url
                               ? <img src={review.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                              : review.profiles?.full_name?.[0] || 'C'}
+                              : (review.profiles?.full_name?.[0] || 'C')}
                           </div>
-                          <span className="text-white text-xs font-bold">{review.profiles?.full_name || 'Cliente'}</span>
+                          <span className="text-[#0A0E27] text-sm font-semibold">{review.profiles?.full_name || 'Cliente'}</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5">
                           {Array.from({ length: review.rating }).map((_, s) => (
-                            <Star key={s} size={10} className="text-[#10B981] fill-[#10B981]" />
+                            <Star key={s} size={11} className="text-[#10B981] fill-[#10B981]" />
                           ))}
                         </div>
                       </div>
-                      {review.comment && <p className="text-slate-400 text-xs leading-relaxed font-light">{review.comment}</p>}
+                      {review.comment && (
+                        <p className="text-gray-500 text-sm leading-relaxed">{review.comment}</p>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-500 text-sm font-light text-center py-4">
-                  Aun no hay resenas. Se el primero en calificar a este asesor.
+                <p className="text-gray-400 text-sm text-center py-6">
+                  Aún no hay reseñas. Sé el primero en trabajar con este asesor.
                 </p>
               )}
-            </GlassCard>
+            </div>
 
           </div>
 
-          <div className="space-y-5 lg:sticky lg:top-28 lg:self-start">
-            <GlassCard className="p-6 border-[#10B981]/10">
-              <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10B981] mb-2">Reservar sesion</h2>
-              <p className="text-slate-500 text-[11px] mb-5 leading-relaxed">
-                Elige entre una sesion inicial de prueba o el plan completo con acceso total.
+          {/* ─── RIGHT COLUMN (sticky) ─── */}
+          <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+
+            {/* Booking card */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-[#0A0E27] font-bold text-base mb-1">Reservar sesión</h2>
+              <p className="text-gray-400 text-xs mb-5 leading-relaxed">
+                Elige el plan que mejor se adapte a tus necesidades.
               </p>
-              <div className="space-y-3 mb-6">
-                <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-white text-xs font-bold">Sesion Inicial</p>
-                    <span className="text-white font-bold text-sm">$19</span>
+
+              <div className="space-y-2 mb-5">
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                  <div>
+                    <p className="text-[#0A0E27] text-xs font-bold">Sesión Inicial</p>
+                    <p className="text-gray-400 text-[10px]">30 min</p>
                   </div>
-                  <p className="text-slate-500 text-[10px]">30 min - Conoce al asesor</p>
+                  <span className="text-[#0A0E27] font-black text-base">$19</span>
                 </div>
-                <div className="p-4 rounded-xl border border-[#10B981]/30 bg-[#10B981]/5">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-white text-xs font-bold">Plan Completo</p>
-                    <span className="text-white font-bold text-sm">$149</span>
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-[#10B981]/20 bg-[#10B981]/5">
+                  <div>
+                    <p className="text-[#0A0E27] text-xs font-bold">Plan Completo</p>
+                    <p className="text-gray-400 text-[10px]">4 × 60 min</p>
                   </div>
-                  <p className="text-slate-500 text-[10px]">4 sesiones de 60 min - Acceso total</p>
+                  <span className="text-[#10B981] font-black text-base">$149</span>
                 </div>
               </div>
-              <button onClick={handleBooking} disabled={!advisor.available}
-                className="w-full bg-[#10B981] text-[#0A0E27] font-black py-4 rounded-xl uppercase tracking-[0.15em] text-[10px] flex items-center justify-center gap-2 hover:bg-[#0ea371] transition-all mb-3 disabled:opacity-50 disabled:cursor-not-allowed">
-                <Calendar size={14} />
-                {user ? 'Ver planes y reservar' : 'Inicia sesion para reservar'}
-              </button>
-              <button className="w-full bg-white/5 border border-white/10 text-white font-bold py-3 rounded-xl uppercase tracking-[0.15em] text-[10px] flex items-center justify-center gap-2 hover:bg-white/10 transition-all">
-                <MessageCircle size={14} />
-                Enviar mensaje
-              </button>
-              <p className="text-center text-slate-600 text-[9px] uppercase tracking-wider mt-4">
-                Pago seguro procesado por Stripe
-              </p>
-            </GlassCard>
 
-            <GlassCard className="p-5 border-white/5">
+              <button
+                onClick={handleBooking}
+                disabled={!advisor.available}
+                className="w-full bg-[#10B981] text-white font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#0ea371] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Calendar size={15} />
+                {user ? 'Ver planes y reservar' : 'Inicia sesión para reservar'}
+              </button>
+
+              <div className="flex items-center justify-center gap-1.5 mt-4">
+                <CheckCircle size={12} className="text-gray-300" />
+                <p className="text-gray-300 text-[10px]">Pago seguro procesado por Stripe</p>
+              </div>
+            </div>
+
+            {/* Trust card */}
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-start gap-3">
-                <Shield size={16} className="text-[#10B981] flex-shrink-0 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 flex items-center justify-center flex-shrink-0">
+                  <Shield size={15} className="text-[#10B981]" />
+                </div>
                 <div>
-                  <p className="text-white text-xs font-bold mb-1">Plataforma verificada</p>
-                  <p className="text-slate-500 text-[10px] leading-relaxed font-light">
-                    Todos los asesores pasan por un proceso de verificacion antes de aparecer en la plataforma.
+                  <p className="text-[#0A0E27] text-sm font-bold mb-1">Plataforma verificada</p>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    Todos los asesores pasan por un proceso de verificación antes de aparecer en la plataforma.
                   </p>
                 </div>
               </div>
-            </GlassCard>
-          </div>
+            </div>
 
+          </div>
         </div>
       </div>
     </div>

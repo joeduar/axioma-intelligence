@@ -17,15 +17,24 @@ import { supabase } from '../lib/supabase';
 import AvatarUpload from '../components/AvatarUpload';
 import LogoutScreen from '../components/LogoutScreen';
 
-const earningsData = [
-  { mes: 'Ene', ingresos: 0 },
-  { mes: 'Feb', ingresos: 149 },
-  { mes: 'Mar', ingresos: 298 },
-  { mes: 'Abr', ingresos: 149 },
-  { mes: 'May', ingresos: 447 },
-  { mes: 'Jun', ingresos: 298 },
-  { mes: 'Jul', ingresos: 596 },
-];
+const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+const buildEarningsData = (payments: any[]) => {
+  const now = new Date();
+  const months: { mes: string; ingresos: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ mes: MONTH_NAMES[d.getMonth()], ingresos: 0 });
+  }
+  payments.forEach((p) => {
+    const d = new Date(p.created_at);
+    const diff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    if (diff >= 0 && diff <= 5) {
+      months[5 - diff].ingresos += Number(p.amount) || 0;
+    }
+  });
+  return months;
+};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -33,7 +42,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-[#0A0E27] text-white px-4 py-3 rounded-xl shadow-xl border border-white/10 text-xs">
         <p className="font-bold mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
-          <p key={i} style={{ color: p.color }}>{p.name}: {p.name === 'Revenue' ? `$${p.value}` : p.value}</p>
+          <p key={i} style={{ color: p.color }}>{p.name}: {p.name === 'Ingresos' ? `$${p.value}` : p.value}</p>
         ))}
       </div>
     );
@@ -53,11 +62,11 @@ const AdvisorProfileMenu = ({ onNavigate }: { onNavigate: (tab: string) => void 
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
   const options = [
-    { label: 'Edit profile', icon: User, tab: 'perfil' },
-    { label: 'My sessions', icon: Calendar, tab: 'sesiones' },
-    { label: 'Revenue report', icon: DollarSign, tab: 'ingresos' },
-    { label: 'Pending requests', icon: Bell, tab: 'solicitudes' },
-    { label: 'Messages', icon: MessageCircle, tab: 'mensajes' },
+    { label: 'Editar perfil', icon: User, tab: 'perfil' },
+    { label: 'Mis sesiones', icon: Calendar, tab: 'sesiones' },
+    { label: 'Reporte de ingresos', icon: DollarSign, tab: 'ingresos' },
+    { label: 'Solicitudes pendientes', icon: Bell, tab: 'solicitudes' },
+    { label: 'Mensajes', icon: MessageCircle, tab: 'mensajes' },
   ];
   return (
     <div className="relative" ref={ref}>
@@ -162,13 +171,13 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
     return (
       <div className="h-full flex flex-col items-center justify-center text-center p-8">
         <MessageCircle size={28} className="text-gray-300 mb-3" />
-        <p className="text-gray-400 text-sm">No active conversations</p>
-        <p className="text-gray-300 text-xs mt-1">Conversations appear when clients book a plan</p>
+        <p className="text-gray-400 text-sm">Sin conversaciones activas</p>
+        <p className="text-gray-300 text-xs mt-1">Las conversaciones aparecen cuando los clientes contratan un plan</p>
       </div>
     );
   }
 
-  const clientName = activeConv?.profiles?.full_name || 'Client';
+  const clientName = activeConv?.profiles?.full_name || 'Cliente';
   const clientAvatar = activeConv?.profiles?.avatar_url;
 
   return (
@@ -185,7 +194,7 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
                 <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center text-white text-[9px] font-black overflow-hidden flex-shrink-0">
                   {conv.profiles?.avatar_url ? <img src={conv.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : (conv.profiles?.full_name?.[0] || 'C')}
                 </div>
-                {conv.profiles?.full_name || 'Client'}
+                {conv.profiles?.full_name || 'Cliente'}
               </button>
             ))}
           </div>
@@ -202,7 +211,7 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
             <p className="font-bold text-gray-800 text-sm">{clientName}</p>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-              <p className="text-xs text-gray-400">Client</p>
+              <p className="text-xs text-gray-400">Cliente</p>
             </div>
           </div>
         </div>
@@ -212,7 +221,7 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-400 text-sm">Start the conversation with {clientName}</p>
+            <p className="text-gray-400 text-sm">Inicia la conversación con {clientName}</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -251,7 +260,7 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
           <button className="text-gray-400 hover:text-gray-600"><Paperclip size={15} /></button>
           <input type="text" value={newMsg} onChange={(e) => setNewMsg(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            placeholder={`Message ${clientName}...`}
+            placeholder={`Escribe un mensaje a ${clientName}...`}
             className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none" />
           <button className="text-gray-400 hover:text-gray-600"><Smile size={15} /></button>
           <button onClick={sendMessage} disabled={!newMsg.trim() || sending}
@@ -266,12 +275,12 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
 
 // ── NAV ITEMS ─────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: 'inicio', label: 'Home', icon: LayoutDashboard },
-  { id: 'solicitudes', label: 'Requests', icon: Bell },
-  { id: 'sesiones', label: 'Sessions', icon: Calendar },
-  { id: 'ingresos', label: 'Revenue', icon: DollarSign },
-  { id: 'mensajes', label: 'Messages', icon: MessageCircle },
-  { id: 'perfil', label: 'Profile', icon: User },
+  { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
+  { id: 'solicitudes', label: 'Solicitudes', icon: Bell },
+  { id: 'sesiones', label: 'Sesiones', icon: Calendar },
+  { id: 'ingresos', label: 'Ingresos', icon: DollarSign },
+  { id: 'mensajes', label: 'Mensajes', icon: MessageCircle },
+  { id: 'perfil', label: 'Perfil', icon: User },
 ];
 
 const CATEGORIES = ['Finanzas', 'Negocios', 'Datos & IA', 'Legal', 'Marketing', 'Tecnología', 'Recursos Humanos', 'Startups'];
@@ -296,9 +305,11 @@ const AdvisorDashboard = () => {
   const [advisorData, setAdvisorData] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [earningsData, setEarningsData] = useState<{ mes: string; ingresos: number }[]>(buildEarningsData([]));
   const [loggingOut, setLoggingOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const [formFullName, setFormFullName] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formBio, setFormBio] = useState('');
@@ -306,12 +317,26 @@ const AdvisorDashboard = () => {
   const [formLanguages, setFormLanguages] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [togglingAvail, setTogglingAvail] = useState(false);
 
   const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (user) fetchAll();
   }, [user]);
+
+  // Realtime: new session requests appear instantly
+  useEffect(() => {
+    if (!advisorData?.id) return;
+    const channel = supabase
+      .channel(`advisor-sessions-${advisorData.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'sessions',
+        filter: `advisor_id=eq.${advisorData.id}`,
+      }, () => { fetchAll(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [advisorData?.id]);
 
   const fetchAll = async () => {
     const [advisorRes, notifsRes] = await Promise.all([
@@ -321,16 +346,24 @@ const AdvisorDashboard = () => {
     if (advisorRes.data) {
       const adv = advisorRes.data;
       setAdvisorData(adv);
+      setFormFullName(profile?.full_name || '');
       setFormTitle(adv.title || '');
       setFormCategory(adv.category || '');
       setFormBio(adv.bio || '');
       setFormExperience(adv.experience || '');
       setFormLanguages(adv.languages || '');
 
-      const sessionsRes = await supabase.from('sessions')
-        .select('*, profiles!sessions_client_id_fkey(full_name, email, avatar_url), services(name, price, duration)')
-        .eq('advisor_id', adv.id).order('created_at', { ascending: false });
+      const [sessionsRes, paymentsRes] = await Promise.all([
+        supabase.from('sessions')
+          .select('*, profiles!sessions_client_id_fkey(full_name, email, avatar_url), services(name, price, duration)')
+          .eq('advisor_id', adv.id).order('created_at', { ascending: false }),
+        supabase.from('payments')
+          .select('amount, created_at')
+          .eq('advisor_id', adv.id)
+          .eq('status', 'completado'),
+      ]);
       setSessions(sessionsRes.data || []);
+      setEarningsData(buildEarningsData(paymentsRes.data || []));
     }
     setNotifications(notifsRes.data || []);
   };
@@ -342,24 +375,37 @@ const AdvisorDashboard = () => {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingProfile(true);
-    await supabase.from('advisors').update({ title: formTitle, category: formCategory, bio: formBio, experience: formExperience, languages: formLanguages }).eq('user_id', user?.id);
+    await Promise.all([
+      supabase.from('advisors').update({ title: formTitle, category: formCategory, bio: formBio, experience: formExperience, languages: formLanguages }).eq('user_id', user?.id),
+      supabase.from('profiles').update({ full_name: formFullName }).eq('id', user?.id),
+    ]);
     setSavingProfile(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+    fetchAll();
+  };
+
+  const handleToggleAvailability = async () => {
+    if (!advisorData) return;
+    setTogglingAvail(true);
+    const newVal = !advisorData.available;
+    await supabase.from('advisors').update({ available: newVal }).eq('id', advisorData.id);
+    setAdvisorData((prev: any) => ({ ...prev, available: newVal }));
+    setTogglingAvail(false);
   };
 
   const pendingSessions = sessions.filter(s => s.status === 'pendiente');
   const confirmedSessions = sessions.filter(s => s.status === 'confirmada');
   const completedSessions = sessions.filter(s => s.status === 'completada');
   const totalEarnings = completedSessions.reduce((sum, s) => sum + (s.price || 0), 0);
-  const firstName = profile?.full_name?.split(' ')[0] || 'Advisor';
+  const firstName = profile?.full_name?.split(' ')[0] || 'Asesor';
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
   const stats = [
-    { label: 'Total revenue', value: `$${totalEarnings}`, icon: DollarSign, change: '+12%', up: true },
-    { label: 'Completed', value: completedSessions.length, icon: CheckCircle, change: completedSessions.length > 0 ? `+${completedSessions.length}` : '0', up: completedSessions.length > 0 },
-    { label: 'Requests', value: pendingSessions.length, icon: Bell, change: pendingSessions.length > 0 ? `${pendingSessions.length} new` : 'None', up: pendingSessions.length > 0 },
-    { label: 'Upcoming', value: confirmedSessions.length, icon: Calendar, change: '0', up: null },
+    { label: 'Ingresos totales', value: `$${totalEarnings}`, icon: DollarSign, change: '+12%', up: true },
+    { label: 'Completadas', value: completedSessions.length, icon: CheckCircle, change: completedSessions.length > 0 ? `+${completedSessions.length}` : '0', up: completedSessions.length > 0 },
+    { label: 'Solicitudes', value: pendingSessions.length, icon: Bell, change: pendingSessions.length > 0 ? `${pendingSessions.length} nuevas` : 'Ninguna', up: pendingSessions.length > 0 },
+    { label: 'Próximas', value: confirmedSessions.length, icon: Calendar, change: '0', up: null },
   ];
 
   return (
@@ -408,7 +454,7 @@ const AdvisorDashboard = () => {
           <button onClick={handleLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-50 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}>
             <LogOut size={17} className="flex-shrink-0" />
-            {!sidebarCollapsed && <span className="text-xs font-semibold">Sign out</span>}
+            {!sidebarCollapsed && <span className="text-xs font-semibold">Cerrar sesión</span>}
           </button>
         </div>
 
@@ -422,26 +468,35 @@ const AdvisorDashboard = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
           <p className="font-bold text-gray-700 text-sm">
-            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Requests' : activeTab === 'ingresos' ? 'Revenue' : activeTab === 'sesiones' ? 'Sessions' : activeTab === 'mensajes' ? 'Messages' : 'Profile'}
+            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
             <button onClick={() => setRightPanelVisible(!rightPanelVisible)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-all" title={rightPanelVisible ? 'Hide panel' : 'Show panel'}>
+              className="p-2 hover:bg-gray-100 rounded-xl transition-all" title={rightPanelVisible ? 'Ocultar panel' : 'Mostrar panel'}>
               {rightPanelVisible ? <PanelRightClose size={17} className="text-gray-500" /> : <PanelRightOpen size={17} className="text-gray-500" />}
             </button>
             <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 hover:bg-gray-100 rounded-xl transition-all">
+              <button
+                onClick={async () => {
+                  setShowNotifications(!showNotifications);
+                  if (!showNotifications && unreadNotifs > 0) {
+                    const ids = notifications.filter(n => !n.read).map(n => n.id);
+                    await supabase.from('notifications').update({ read: true }).in('id', ids);
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                  }
+                }}
+                className="relative p-2 hover:bg-gray-100 rounded-xl transition-all">
                 <Bell size={17} className="text-gray-500" />
                 {unreadNotifs > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-[#10B981] rounded-full text-[8px] font-black text-white flex items-center justify-center">{unreadNotifs}</span>}
               </button>
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <p className="font-bold text-gray-800 text-sm">Notifications</p>
+                    <p className="font-bold text-gray-800 text-sm">Notificaciones</p>
                     <button onClick={() => setShowNotifications(false)}><X size={14} className="text-gray-400" /></button>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
-                    {notifications.map((n) => (
+                    {notifications.length > 0 ? notifications.map((n) => (
                       <div key={n.id} className={`px-4 py-3 border-b border-gray-50 last:border-0 ${!n.read ? 'bg-[#10B981]/5' : ''}`}>
                         <div className="flex gap-2.5">
                           <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read ? 'bg-[#10B981]' : 'bg-gray-200'}`} />
@@ -451,7 +506,9 @@ const AdvisorDashboard = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="px-4 py-8 text-center"><p className="text-gray-400 text-sm">Sin notificaciones</p></div>
+                    )}
                   </div>
                 </div>
               )}
@@ -459,7 +516,7 @@ const AdvisorDashboard = () => {
             <div className="flex items-center gap-2.5 pl-3 border-l border-gray-100">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-gray-800 leading-none">{firstName}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Advisor</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Asesor</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => setActiveTab('perfil')}>
                 {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xs font-black">{firstName[0]}</span>}
@@ -476,9 +533,9 @@ const AdvisorDashboard = () => {
               <div className="p-6 space-y-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Hello, {firstName}! 👋</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Hola, {firstName}! 👋</h1>
                     <p className="text-gray-500 text-sm mt-1">
-                      {pendingSessions.length > 0 ? `You have ${pendingSessions.length} pending request${pendingSessions.length > 1 ? 's' : ''}` : 'Your advisory dashboard'}
+                      {pendingSessions.length > 0 ? `Tienes ${pendingSessions.length} solicitud${pendingSessions.length > 1 ? 'es' : ''} pendiente${pendingSessions.length > 1 ? 's' : ''}` : 'Tu panel de asesoría'}
                     </p>
                   </div>
                   <p className="text-gray-400 text-sm">{today}</p>
@@ -506,8 +563,8 @@ const AdvisorDashboard = () => {
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h2 className="font-bold text-gray-800">Revenue performance</h2>
-                      <p className="text-gray-400 text-xs mt-0.5">Earnings over the last 7 months</p>
+                      <h2 className="font-bold text-gray-800">Rendimiento de ingresos</h2>
+                      <p className="text-gray-400 text-xs mt-0.5">Ganancias en los últimos 6 meses</p>
                     </div>
                   </div>
                   <ResponsiveContainer width="100%" height={170}>
@@ -521,7 +578,7 @@ const AdvisorDashboard = () => {
                       <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="ingresos" name="Revenue" stroke="#10B981" strokeWidth={2} fill="url(#gr)" dot={{ fill: '#10B981', r: 3 }} />
+                      <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke="#10B981" strokeWidth={2} fill="url(#gr)" dot={{ fill: '#10B981', r: 3 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -529,8 +586,8 @@ const AdvisorDashboard = () => {
                 {pendingSessions.length > 0 && (
                   <div className="bg-white rounded-2xl border border-amber-200 p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-bold text-gray-800">Pending requests</h2>
-                      <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full">{pendingSessions.length} new</span>
+                      <h2 className="font-bold text-gray-800">Solicitudes pendientes</h2>
+                      <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full">{pendingSessions.length} nueva{pendingSessions.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div className="space-y-3">
                       {pendingSessions.map((session) => (
@@ -539,12 +596,12 @@ const AdvisorDashboard = () => {
                             {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-amber-600">{session.profiles?.full_name?.[0] || 'C'}</span>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-800 text-sm">{session.profiles?.full_name || 'Client'}</p>
+                            <p className="font-bold text-gray-800 text-sm">{session.profiles?.full_name || 'Cliente'}</p>
                             <p className="text-gray-400 text-xs">{session.profiles?.email}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => handleAccept(session.id)} className="px-4 py-2 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Accept</button>
-                            <button onClick={() => handleReject(session.id)} className="px-4 py-2 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Decline</button>
+                            <button onClick={() => handleAccept(session.id)} className="px-4 py-2 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Aceptar</button>
+                            <button onClick={() => handleReject(session.id)} className="px-4 py-2 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Rechazar</button>
                           </div>
                         </div>
                       ))}
@@ -553,7 +610,7 @@ const AdvisorDashboard = () => {
                 )}
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                  <h2 className="font-bold text-gray-800 mb-4">Recent sessions</h2>
+                  <h2 className="font-bold text-gray-800 mb-4">Sesiones recientes</h2>
                   {sessions.length > 0 ? (
                     <div className="space-y-2">
                       {sessions.slice(0, 5).map((session) => (
@@ -562,8 +619,8 @@ const AdvisorDashboard = () => {
                             {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-gray-500 font-bold text-sm">{session.profiles?.full_name?.[0] || 'C'}</span>}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-800 text-sm truncate">{session.profiles?.full_name || 'Client'}</p>
-                            <p className="text-gray-400 text-xs">{session.services?.name || 'Advisory session'}</p>
+                            <p className="font-semibold text-gray-800 text-sm truncate">{session.profiles?.full_name || 'Cliente'}</p>
+                            <p className="text-gray-400 text-xs">{session.services?.name || 'Sesión de asesoría'}</p>
                           </div>
                           <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${getStatusStyle(session.status)}`}>{session.status}</span>
                           <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-all flex-shrink-0">
@@ -575,7 +632,7 @@ const AdvisorDashboard = () => {
                   ) : (
                     <div className="text-center py-8">
                       <Users size={28} className="text-gray-200 mx-auto mb-3" />
-                      <p className="text-gray-400 text-sm">No sessions yet. Complete your profile to attract clients.</p>
+                      <p className="text-gray-400 text-sm">Aún no tienes sesiones. Completa tu perfil para atraer clientes.</p>
                     </div>
                   )}
                 </div>
@@ -585,7 +642,7 @@ const AdvisorDashboard = () => {
             {/* ── REQUESTS ── */}
             {activeTab === 'solicitudes' && (
               <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Session requests</h1>
+                <h1 className="text-2xl font-bold text-gray-800">Solicitudes de sesión</h1>
                 {pendingSessions.length > 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                     {pendingSessions.map((session, i) => (
@@ -594,13 +651,13 @@ const AdvisorDashboard = () => {
                           {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : session.profiles?.full_name?.[0] || 'C'}
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-gray-800">{session.profiles?.full_name || 'Client'}</p>
+                          <p className="font-bold text-gray-800">{session.profiles?.full_name || 'Cliente'}</p>
                           <p className="text-[#10B981] text-xs font-semibold">{session.services?.name}</p>
                           <p className="text-gray-400 text-xs">{session.profiles?.email}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => handleAccept(session.id)} className="px-5 py-2.5 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Accept</button>
-                          <button onClick={() => handleReject(session.id)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Decline</button>
+                          <button onClick={() => handleAccept(session.id)} className="px-5 py-2.5 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Aceptar</button>
+                          <button onClick={() => handleReject(session.id)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Rechazar</button>
                         </div>
                       </div>
                     ))}
@@ -608,7 +665,7 @@ const AdvisorDashboard = () => {
                 ) : (
                   <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
                     <Clock size={32} className="text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400">No pending requests</p>
+                    <p className="text-gray-400">Sin solicitudes pendientes</p>
                   </div>
                 )}
               </div>
@@ -617,7 +674,7 @@ const AdvisorDashboard = () => {
             {/* ── SESSIONS ── */}
             {activeTab === 'sesiones' && (
               <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Session history</h1>
+                <h1 className="text-2xl font-bold text-gray-800">Historial de sesiones</h1>
                 {sessions.length > 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
                     {sessions.map((session, i) => (
@@ -626,8 +683,8 @@ const AdvisorDashboard = () => {
                           {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : session.profiles?.full_name?.[0] || 'C'}
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-gray-800 text-sm">{session.profiles?.full_name || 'Client'}</p>
-                          <p className="text-gray-400 text-xs">{session.services?.name || 'Advisory session'}</p>
+                          <p className="font-bold text-gray-800 text-sm">{session.profiles?.full_name || 'Cliente'}</p>
+                          <p className="text-gray-400 text-xs">{session.services?.name || 'Sesión de asesoría'}</p>
                         </div>
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${getStatusStyle(session.status)}`}>{session.status}</span>
                       </div>
@@ -636,7 +693,7 @@ const AdvisorDashboard = () => {
                 ) : (
                   <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
                     <Calendar size={32} className="text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400">No sessions yet</p>
+                    <p className="text-gray-400">Aún no hay sesiones registradas</p>
                   </div>
                 )}
               </div>
@@ -645,12 +702,12 @@ const AdvisorDashboard = () => {
             {/* ── REVENUE ── */}
             {activeTab === 'ingresos' && (
               <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Revenue</h1>
+                <h1 className="text-2xl font-bold text-gray-800">Ingresos</h1>
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { label: 'Total generated', value: `$${totalEarnings}`, sub: 'All time' },
-                    { label: 'Completed sessions', value: completedSessions.length, sub: 'Paid & closed' },
-                    { label: 'Avg per session', value: completedSessions.length > 0 ? `$${Math.round(totalEarnings / completedSessions.length)}` : '$0', sub: 'Per session' },
+                    { label: 'Total generado', value: `$${totalEarnings}`, sub: 'Acumulado' },
+                    { label: 'Sesiones completadas', value: completedSessions.length, sub: 'Pagadas y cerradas' },
+                    { label: 'Promedio por sesión', value: completedSessions.length > 0 ? `$${Math.round(totalEarnings / completedSessions.length)}` : '$0', sub: 'Por sesión' },
                   ].map((s, i) => (
                     <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm">
                       <p className="text-3xl font-black text-gray-800 mb-1">{s.value}</p>
@@ -660,14 +717,14 @@ const AdvisorDashboard = () => {
                   ))}
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                  <h2 className="font-bold text-gray-800 mb-6">Monthly revenue</h2>
+                  <h2 className="font-bold text-gray-800 mb-6">Ingresos mensuales</h2>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={earningsData} barSize={24}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f3f5" />
                       <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="ingresos" name="Revenue" fill="#10B981" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="ingresos" name="Ingresos" fill="#10B981" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -677,7 +734,7 @@ const AdvisorDashboard = () => {
             {/* ── MESSAGES ── */}
             {activeTab === 'mensajes' && (
               <div className="p-6 h-full flex flex-col">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Messages</h1>
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">Mensajes</h1>
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex-1" style={{ minHeight: '500px' }}>
                   <AdvisorChatPanel user={user} profile={profile} advisorId={advisorData?.id || null} />
                 </div>
@@ -687,7 +744,7 @@ const AdvisorDashboard = () => {
             {/* ── PROFILE ── */}
             {activeTab === 'perfil' && (
               <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">My public profile</h1>
+                <h1 className="text-2xl font-bold text-gray-800">Mi perfil público</h1>
                 <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
                   <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                     <AvatarUpload currentUrl={advisorData?.avatar_url || profile?.avatar_url}
@@ -696,51 +753,64 @@ const AdvisorDashboard = () => {
                       <p className="font-bold text-gray-800 text-xl">{profile?.full_name}</p>
                       <p className="text-gray-400 text-sm mt-0.5">{profile?.email}</p>
                       {advisorData?.verified && (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-[#10B981] mt-2"><CheckCircle size={13} /> Verified advisor</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-[#10B981] mt-2"><CheckCircle size={13} /> Asesor verificado</span>
                       )}
                       {advisorData?.rating && (
                         <div className="flex items-center gap-1 mt-2">
                           <Star size={13} className="text-[#10B981] fill-[#10B981]" />
                           <span className="text-sm font-bold text-gray-700">{advisorData.rating.toFixed(1)}</span>
-                          <span className="text-xs text-gray-400">({advisorData.total_reviews || 0} reviews)</span>
+                          <span className="text-xs text-gray-400">({advisorData.total_reviews || 0} reseñas)</span>
                         </div>
                       )}
                     </div>
                   </div>
+                  {/* Disponibilidad toggle */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 mb-6">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700">Disponible para nuevos clientes</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Tu perfil aparece en el catálogo cuando estás disponible</p>
+                    </div>
+                    <button type="button" onClick={handleToggleAvailability} disabled={togglingAvail}
+                      className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${advisorData?.available ? 'bg-[#10B981]' : 'bg-gray-300'} disabled:opacity-60`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${advisorData?.available ? 'translate-x-6' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
                   <form onSubmit={handleSaveProfile} className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
                       {[
-                        { label: 'Professional title', value: formTitle, set: setFormTitle, placeholder: 'e.g. CFO Independiente' },
-                        { label: 'Experience', value: formExperience, set: setFormExperience, placeholder: 'e.g. 10 years' },
-                        { label: 'Languages', value: formLanguages, set: setFormLanguages, placeholder: 'Spanish, English' },
+                        { label: 'Nombre completo', value: formFullName, set: setFormFullName, placeholder: 'Tu nombre completo' },
+                        { label: 'Título profesional', value: formTitle, set: setFormTitle, placeholder: 'ej. CFO Independiente' },
+                        { label: 'Experiencia', value: formExperience, set: setFormExperience, placeholder: 'ej. 10 años' },
+                        { label: 'Idiomas', value: formLanguages, set: setFormLanguages, placeholder: 'Español, Inglés' },
                       ].map((f) => (
                         <div key={f.label}>
-                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">{f.label}</label>
+                          <label className="text-xs font-semibold text-gray-500 block mb-1.5">{f.label}</label>
                           <input value={f.value} onChange={(e) => f.set(e.target.value)} placeholder={f.placeholder}
                             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10 outline-none bg-gray-50 transition-all" />
                         </div>
                       ))}
                       <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Specialty</label>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1.5">Especialidad</label>
                         <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)}
                           className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:border-[#10B981] outline-none bg-gray-50">
-                          <option value="">Select specialty</option>
+                          <option value="">Seleccionar especialidad</option>
                           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">Professional bio</label>
+                      <label className="text-xs font-semibold text-gray-500 block mb-1.5">Bio profesional</label>
                       <textarea value={formBio} onChange={(e) => setFormBio(e.target.value)} rows={4}
-                        placeholder="Describe your experience and what you offer clients..."
+                        placeholder="Describe tu experiencia y lo que ofreces a tus clientes..."
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/10 outline-none bg-gray-50 resize-none" />
                     </div>
                     <div className="flex items-center gap-4">
                       <button type="submit" disabled={savingProfile}
                         className="bg-[#0A0E27] text-white font-bold py-3 px-8 rounded-xl text-sm hover:bg-[#0A0E27]/90 transition-all disabled:opacity-50">
-                        {savingProfile ? 'Saving...' : 'Save changes'}
+                        {savingProfile ? 'Guardando...' : 'Guardar cambios'}
                       </button>
-                      {saveSuccess && <span className="flex items-center gap-1.5 text-[#10B981] text-sm font-bold"><CheckCircle size={14} /> Saved!</span>}
+                      {saveSuccess && <span className="flex items-center gap-1.5 text-[#10B981] text-sm font-bold"><CheckCircle size={14} /> ¡Guardado!</span>}
                     </div>
                   </form>
                 </div>
@@ -758,7 +828,7 @@ const AdvisorDashboard = () => {
                     {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xl font-black">{firstName[0]}</span>}
                   </div>
                   <p className="font-bold text-gray-800 text-sm">{profile?.full_name}</p>
-                  <p className="text-gray-400 text-xs">{advisorData?.title || 'Advisor'}</p>
+                  <p className="text-gray-400 text-xs">{advisorData?.title || 'Asesor'}</p>
                   {advisorData?.rating && (
                     <div className="flex items-center justify-center gap-1 mt-1.5">
                       <Star size={12} className="text-[#10B981] fill-[#10B981]" />
@@ -767,11 +837,11 @@ const AdvisorDashboard = () => {
                     </div>
                   )}
                   <div className="flex items-center justify-center gap-2 mt-3">
-                    <button onClick={() => setActiveTab('mensajes')} title="Messages"
+                    <button onClick={() => setActiveTab('mensajes')} title="Mensajes"
                       className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
                       <MessageCircle size={14} className="text-gray-500" />
                     </button>
-                    <button onClick={() => setActiveTab('perfil')} title="Edit profile"
+                    <button onClick={() => setActiveTab('perfil')} title="Editar perfil"
                       className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
                       <Settings size={14} className="text-gray-500" />
                     </button>
@@ -782,7 +852,7 @@ const AdvisorDashboard = () => {
 
               <div className="flex-1 overflow-hidden flex flex-col">
                 <div className="px-5 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Client messages</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mensajes de clientes</p>
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <AdvisorChatPanel user={user} profile={profile} advisorId={advisorData?.id || null} />
