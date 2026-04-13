@@ -12,8 +12,6 @@ import AdvisorsPage from './pages/AdvisorsPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import AboutPage from './pages/AboutPage';
 import AdvisorProfilePage from './pages/AdvisorProfilePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 import ClientDashboard from './pages/ClientDashboard';
 import AdvisorDashboard from './pages/AdvisorDashboard';
 import ProtectedRoute from './components/ProtectedRoute';

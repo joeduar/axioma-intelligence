@@ -91,7 +91,7 @@ const AdvisorProfileMenu = ({ onNavigate }: { onNavigate: (tab: string) => void 
 };
 
 // ── CHAT ASESOR ───────────────────────────────────────────
-const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: any; advisorId: string | null }) => {
+const AdvisorChatPanel = ({ user, profile, advisorId, forcedConv }: { user: any; profile: any; advisorId: string | null; forcedConv?: any }) => {
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -101,8 +101,13 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
+    if (forcedConv) {
+      setConversations([forcedConv]);
+      setActiveConv(forcedConv);
+      return;
+    }
     if (advisorId) fetchConversations();
-  }, [advisorId]);
+  }, [advisorId, forcedConv]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -273,6 +278,115 @@ const AdvisorChatPanel = ({ user, profile, advisorId }: { user: any; profile: an
   );
 };
 
+// ── MESSAGES TAB ASESOR ──────────────────────────────────
+const AdvisorMessagesTab = ({ user, profile, advisorId }: { user: any; profile: any; advisorId: string | null }) => {
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [activeConv, setActiveConv] = useState<any>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (advisorId) fetchConversations();
+  }, [advisorId]);
+
+  const fetchConversations = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('conversations')
+      .select('*, profiles!conversations_client_id_fkey(full_name, avatar_url, email)')
+      .eq('advisor_id', advisorId)
+      .order('last_message_at', { ascending: false });
+    setConversations(data || []);
+    setLoading(false);
+  };
+
+  const openChat = (conv: any) => {
+    setActiveConv(conv);
+    setChatOpen(true);
+  };
+
+  if (chatOpen && activeConv) {
+    const clientName = activeConv.profiles?.full_name || 'Cliente';
+    const clientAvatar = activeConv.profiles?.avatar_url;
+    return (
+      <div className="p-6 flex flex-col" style={{ height: 'calc(100vh - 56px)' }}>
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => setChatOpen(false)}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-500 hover:text-gray-800">
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#0A0E27] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+              {clientAvatar
+                ? <img src={clientAvatar} alt="" className="w-full h-full object-cover" />
+                : clientName[0]}
+            </div>
+            <div>
+              <p className="font-bold text-gray-800 text-sm">{clientName}</p>
+              <p className="text-gray-400 text-xs">{activeConv.profiles?.email}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex-1">
+          <AdvisorChatPanel user={user} profile={profile} advisorId={advisorId} forcedConv={activeConv} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-5">
+      <h1 className="text-2xl font-bold text-gray-800">Mensajes</h1>
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-sm">
+          <p className="text-gray-400 text-sm animate-pulse">Cargando conversaciones...</p>
+        </div>
+      ) : conversations.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+          <MessageCircle size={32} className="text-gray-200 mx-auto mb-4" />
+          <p className="text-gray-400 mb-2">Sin conversaciones activas</p>
+          <p className="text-gray-300 text-xs">Las conversaciones aparecen cuando un cliente contrata un plan</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          {conversations.map((conv, i) => {
+            const name = conv.profiles?.full_name || 'Cliente';
+            const avatar = conv.profiles?.avatar_url;
+            return (
+              <div key={conv.id}
+                className={`flex items-center gap-4 p-4 hover:bg-[#f1f3f5] transition-all cursor-pointer ${i < conversations.length - 1 ? 'border-b border-gray-100' : ''}`}
+                onClick={() => openChat(conv)}>
+                <div className="w-11 h-11 rounded-full bg-[#0A0E27] flex items-center justify-center text-white font-bold text-sm overflow-hidden flex-shrink-0">
+                  {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800 text-sm">{name}</p>
+                  <p className="text-gray-400 text-xs truncate">{conv.profiles?.email || 'Cliente'}</p>
+                  {conv.last_message && (
+                    <p className="text-gray-400 text-xs truncate mt-0.5">{conv.last_message}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {conv.last_message_at && (
+                    <span className="text-[10px] text-gray-400">
+                      {new Date(conv.last_message_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openChat(conv); }}
+                    className="px-3 py-1.5 bg-[#0A0E27] text-white text-[10px] font-bold rounded-lg hover:bg-[#0A0E27]/90 transition-all flex items-center gap-1.5">
+                    <MessageCircle size={11} /> Abrir chat
+                  </button>
+                  <ChevronRight size={15} className="text-gray-300" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── NAV ITEMS ─────────────────────────────────────────────
 const NAV_ITEMS = [
   { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
@@ -284,6 +398,21 @@ const NAV_ITEMS = [
 ];
 
 const CATEGORIES = ['Finanzas', 'Negocios', 'Datos & IA', 'Legal', 'Marketing', 'Tecnología', 'Recursos Humanos', 'Startups'];
+
+// ── PROFILE COMPLETION ────────────────────────────────────
+const getAdvisorCompletion = (profile: any, advisorData: any) => {
+  const items = [
+    { label: 'Foto de perfil',        done: !!(profile?.avatar_url || advisorData?.avatar_url) },
+    { label: 'Título profesional',    done: !!advisorData?.title },
+    { label: 'Especialidad',          done: !!advisorData?.category },
+    { label: 'Biografía profesional', done: !!advisorData?.bio },
+    { label: 'Años de experiencia',   done: !!advisorData?.experience },
+    { label: 'Teléfono de contacto',  done: !!profile?.phone },
+  ];
+  const done = items.filter(i => i.done).length;
+  const pct  = Math.round((done / items.length) * 100);
+  return { items, done, total: items.length, pct };
+};
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -302,6 +431,7 @@ const AdvisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('inicio');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const [showChat, setShowChat] = useState(false);
   const [advisorData, setAdvisorData] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -541,6 +671,54 @@ const AdvisorDashboard = () => {
                   <p className="text-gray-400 text-sm">{today}</p>
                 </div>
 
+                {/* ── BARRA DE COMPLETITUD DE PERFIL ── */}
+                {(() => {
+                  const comp = getAdvisorCompletion(profile, advisorData);
+                  if (comp.pct >= 100) return null;
+                  const missing = comp.items.filter(i => !i.done);
+                  return (
+                    <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+                            <p className="text-sm font-bold text-gray-800">Completa tu perfil profesional</p>
+                            <span className="ml-auto text-sm font-black text-amber-500 flex-shrink-0">{comp.pct}%</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mb-3">
+                            Tu perfil aún no es visible en el catálogo · {missing.length} campo{missing.length !== 1 ? 's' : ''} pendiente{missing.length !== 1 ? 's' : ''}
+                          </p>
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
+                            <div
+                              className="h-full bg-amber-400 rounded-full transition-all duration-700"
+                              style={{ width: `${comp.pct}%` }}
+                            />
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {missing.slice(0, 4).map(item => (
+                              <span key={item.label}
+                                className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 font-medium">
+                                {item.label}
+                              </span>
+                            ))}
+                            {missing.length > 4 && (
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                                +{missing.length - 4} más
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab('perfil')}
+                          className="flex-shrink-0 px-4 py-2 bg-[#0A0E27] text-white text-xs font-bold rounded-xl hover:bg-[#0A0E27]/80 transition-all mt-1"
+                        >
+                          Completar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {stats.map((stat, i) => (
                     <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition-all shadow-sm">
@@ -733,18 +911,47 @@ const AdvisorDashboard = () => {
 
             {/* ── MESSAGES ── */}
             {activeTab === 'mensajes' && (
-              <div className="p-6 h-full flex flex-col">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Mensajes</h1>
-                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex-1" style={{ minHeight: '500px' }}>
-                  <AdvisorChatPanel user={user} profile={profile} advisorId={advisorData?.id || null} />
-                </div>
-              </div>
+              <AdvisorMessagesTab user={user} profile={profile} advisorId={advisorData?.id || null} />
             )}
 
             {/* ── PROFILE ── */}
             {activeTab === 'perfil' && (
               <div className="p-6 space-y-5">
                 <h1 className="text-2xl font-bold text-gray-800">Mi perfil público</h1>
+
+                {/* BANNER DE COMPLETITUD */}
+                {(() => {
+                  const comp = getAdvisorCompletion(profile, advisorData);
+                  if (comp.pct >= 100) return (
+                    <div className="flex items-center gap-3 bg-[#10B981]/5 border border-[#10B981]/20 rounded-2xl px-5 py-4">
+                      <CheckCircle size={18} className="text-[#10B981] flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold text-[#10B981]">¡Perfil completo!</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Tu perfil es visible en el catálogo y puedes recibir clientes.</p>
+                      </div>
+                    </div>
+                  );
+                  const missing = comp.items.filter(i => !i.done);
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Bell size={15} className="text-amber-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-bold text-amber-800">Perfil incompleto — {comp.pct}% completado</p>
+                        </div>
+                        <div className="w-full h-1 bg-amber-200 rounded-full overflow-hidden mb-2">
+                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${comp.pct}%` }} />
+                        </div>
+                        <p className="text-xs text-amber-700 leading-relaxed">
+                          Campos pendientes: <span className="font-semibold">{missing.map(i => i.label).join(', ')}</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
                   <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
                     <AvatarUpload currentUrl={advisorData?.avatar_url || profile?.avatar_url}
@@ -820,8 +1027,16 @@ const AdvisorDashboard = () => {
           </div>
 
           {/* ── RIGHT PANEL ── */}
-          {rightPanelVisible && (
-            <div className="hidden xl:flex w-72 flex-col bg-white border-l border-gray-200 flex-shrink-0 shadow-sm">
+          <div
+            className="hidden xl:flex w-72 flex-col bg-white border-l border-gray-200 flex-shrink-0 shadow-sm overflow-hidden"
+            style={{
+              width: rightPanelVisible ? '288px' : '0px',
+              opacity: rightPanelVisible ? 1 : 0,
+              transition: 'width 0.35s ease, opacity 0.3s ease',
+              minWidth: rightPanelVisible ? '288px' : '0px',
+              borderLeftWidth: rightPanelVisible ? '1px' : '0px',
+            }}
+          >
               <div className="px-5 py-5 border-b border-gray-100">
                 <div className="text-center">
                   <div className="w-14 h-14 rounded-full bg-[#10B981]/10 flex items-center justify-center mx-auto mb-2 overflow-hidden border-2 border-[#10B981]/20">
@@ -850,16 +1065,26 @@ const AdvisorDashboard = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <div className="px-5 py-3 border-b border-gray-100">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mensajes de clientes</p>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <AdvisorChatPanel user={user} profile={profile} advisorId={advisorData?.id || null} />
-                </div>
+              {/* Stats rápidas en panel derecho */}
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Resumen</p>
+                {[
+                  { label: 'Total sesiones', value: sessions.length },
+                  { label: 'Completadas', value: completedSessions.length },
+                  { label: 'Solicitudes', value: pendingSessions.length },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <span className="text-xs text-gray-500">{item.label}</span>
+                    <span className="text-xs font-bold text-gray-800">{item.value}</span>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setActiveTab('mensajes')}
+                  className="w-full mt-3 py-2.5 bg-[#0A0E27] text-white text-xs font-bold rounded-xl hover:bg-[#0A0E27]/90 transition-all flex items-center justify-center gap-2">
+                  <MessageCircle size={13} /> Ir a mensajes
+                </button>
               </div>
-            </div>
-          )}
+          </div>
 
         </div>
       </div>

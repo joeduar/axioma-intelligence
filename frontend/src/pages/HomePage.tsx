@@ -210,14 +210,6 @@ const HomePage = () => {
         {/* CONTENIDO */}
         <div className="relative z-10 max-w-4xl mx-auto text-center">
 
-          <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(-16px)', transition: 'all 0.6s ease 0.1s' }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#10B981]/25 text-[#10B981] text-xs font-semibold mb-8"
-              style={{ backgroundColor: 'rgba(16,185,129,0.06)' }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
-              Más de 200 asesores verificados disponibles
-            </div>
-          </div>
-
           <div style={{ opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(24px)', transition: 'all 0.8s ease 0.25s' }}>
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#0A0E27] leading-[1.05] tracking-tight mb-6">
               Conecta con los{' '}
