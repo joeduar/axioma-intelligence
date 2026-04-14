@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import LoadingScreen from './components/LoadingScreen';
 import { AuthProvider } from './context/AuthContext';
+import { DarkModeProvider } from './context/DarkModeContext';
 
 import HomePage from './pages/HomePage';
 import AdvisorsPage from './pages/AdvisorsPage';
@@ -21,6 +22,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import AuthPage from './pages/AuthPage';
+import SessionActivePage from './pages/SessionActivePage';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -123,6 +125,12 @@ const AnimatedRoutes = () => {
           </CleanLayout>
         } />
 
+        <Route path="/sesion/:sessionId" element={
+          <ProtectedRoute role="cliente">
+            <CleanLayout><SessionActivePage /></CleanLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="*" element={
           <PublicLayout>
             <PageTransition>
@@ -158,11 +166,13 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <Router>
-        <ScrollToTop />
-        <AnimatedRoutes />
-      </Router>
-    </AuthProvider>
+    <DarkModeProvider>
+      <AuthProvider>
+        <Router>
+          <ScrollToTop />
+          <AnimatedRoutes />
+        </Router>
+      </AuthProvider>
+    </DarkModeProvider>
   );
 }

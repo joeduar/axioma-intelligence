@@ -4,10 +4,11 @@ import {
   Calendar, Clock, CheckCircle, DollarSign, Users,
   MessageCircle, Send, MoreHorizontal, Bell, Settings,
   ArrowUpRight, Activity, Paperclip, Smile, X,
-  ChevronRight, ChevronLeft, LayoutDashboard, User,
-  LogOut, Shield, Star, PanelRightClose, PanelRightOpen,
-  ExternalLink, AlertCircle, XCircle, TrendingUp
+  ChevronRight, ChevronLeft, ChevronDown, LayoutDashboard, User,
+  LogOut, Shield, Star,
+  ExternalLink, AlertCircle, XCircle, TrendingUp, Moon, Sun
 } from 'lucide-react';
+import { useDarkMode } from '../context/DarkModeContext';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
@@ -430,7 +431,7 @@ const AdvisorDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const [showChat, setShowChat] = useState(false);
   const [advisorData, setAdvisorData] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -438,6 +439,16 @@ const AdvisorDashboard = () => {
   const [earningsData, setEarningsData] = useState<{ mes: string; ingresos: number }[]>(buildEarningsData([]));
   const [loggingOut, setLoggingOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState('todas');
+  const [requestFilter, setRequestFilter] = useState('pendiente');
+  const [acceptModal, setAcceptModal] = useState<any>(null);
+  const [rejectModal, setRejectModal] = useState<any>(null);
+  const [rejectPreset, setRejectPreset] = useState('');
+  const [rejectMessage, setRejectMessage] = useState('');
+  const [processingAction, setProcessingAction] = useState(false);
+  const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [savingAvail, setSavingAvail] = useState(false);
+  const [availOpen, setAvailOpen] = useState(false);
 
   const [formFullName, setFormFullName] = useState('');
   const [formTitle, setFormTitle] = useState('');
@@ -448,8 +459,20 @@ const AdvisorDashboard = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [togglingAvail, setTogglingAvail] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     if (user) fetchAll();
@@ -476,6 +499,9 @@ const AdvisorDashboard = () => {
     if (advisorRes.data) {
       const adv = advisorRes.data;
       setAdvisorData(adv);
+      if (adv.availability_schedule) {
+        try { setAvailability(JSON.parse(adv.availability_schedule)); } catch {}
+      }
       setFormFullName(profile?.full_name || '');
       setFormTitle(adv.title || '');
       setFormCategory(adv.category || '');
@@ -499,8 +525,65 @@ const AdvisorDashboard = () => {
   };
 
   const handleLogout = async () => { setLoggingOut(true); await signOut(); };
-  const handleAccept = async (id: string) => { await supabase.from('sessions').update({ status: 'confirmada' }).eq('id', id); fetchAll(); };
-  const handleReject = async (id: string) => { await supabase.from('sessions').update({ status: 'cancelada' }).eq('id', id); fetchAll(); };
+
+  const handleSetReview = async (session: any) => {
+    await supabase.from('sessions').update({ status: 'en_revision' }).eq('id', session.id);
+    fetchAll();
+  };
+
+  const handleAccept = (session: any) => setAcceptModal(session);
+
+  const confirmAccept = async () => {
+    if (!acceptModal) return;
+    setProcessingAction(true);
+    await supabase.from('sessions').update({ status: 'confirmada' }).eq('id', acceptModal.id);
+    try { await supabase.from('notifications').insert({
+      user_id: acceptModal.client_id,
+      title: '¡Sesión confirmada!',
+      message: `${profile?.full_name || 'Tu asesor'} aceptó tu solicitud de sesión. ¡Prepárate para tu asesoría!`,
+      type: 'session_confirmed', read: false,
+    }); } catch (_) {}
+    setProcessingAction(false);
+    setAcceptModal(null);
+    fetchAll();
+  };
+
+  const handleReject = (session: any) => {
+    setRejectModal(session);
+    setRejectMessage('');
+    setRejectPreset('');
+  };
+
+  const confirmReject = async () => {
+    if (!rejectModal || !rejectMessage.trim()) return;
+    setProcessingAction(true);
+    await supabase.from('sessions').update({ status: 'rechazada', rejection_reason: rejectMessage }).eq('id', rejectModal.id);
+    try { await supabase.from('notifications').insert({
+      user_id: rejectModal.client_id,
+      title: 'Solicitud de sesión no aceptada',
+      message: `Tu asesor respondió: "${rejectMessage}"`,
+      type: 'session_rejected', read: false,
+    }); } catch (_) {}
+    setProcessingAction(false);
+    setRejectModal(null);
+    setRejectMessage('');
+    setRejectPreset('');
+    fetchAll();
+  };
+
+  const handleSaveAvailability = async (newAvail: Record<string, boolean>) => {
+    setSavingAvail(true);
+    setAvailability(newAvail);
+    try { await supabase.from('advisors')
+      .update({ availability_schedule: JSON.stringify(newAvail) })
+      .eq('user_id', user?.id); } catch (_) {}
+    setSavingAvail(false);
+  };
+
+  const toggleAvail = (key: string) => {
+    const updated = { ...availability, [key]: !availability[key] };
+    handleSaveAvailability(updated);
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -539,7 +622,7 @@ const AdvisorDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-[#f1f3f5] text-gray-800 overflow-hidden">
+    <div className={`flex h-screen overflow-hidden ${isDark ? 'dark bg-[#0d1133] text-[#e2e6f3]' : 'bg-[#f1f3f5] text-gray-800'}`}>
       {loggingOut && <LogoutScreen onComplete={() => navigate('/')} />}
 
       {/* ── SIDEBAR ── */}
@@ -580,7 +663,12 @@ const AdvisorDashboard = () => {
           })}
         </nav>
 
-        <div className="px-2 pb-2 border-t border-gray-100 pt-2">
+        <div className="px-2 pb-2 border-t border-gray-100 pt-2 space-y-0.5">
+          <button onClick={toggleDark}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            {isDark ? <Sun size={17} className="flex-shrink-0" /> : <Moon size={17} className="flex-shrink-0" />}
+            {!sidebarCollapsed && <span className="text-xs font-semibold">{isDark ? 'Modo claro' : 'Modo oscuro'}</span>}
+          </button>
           <button onClick={handleLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-50 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}>
             <LogOut size={17} className="flex-shrink-0" />
@@ -601,10 +689,6 @@ const AdvisorDashboard = () => {
             {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
-            <button onClick={() => setRightPanelVisible(!rightPanelVisible)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-all" title={rightPanelVisible ? 'Ocultar panel' : 'Mostrar panel'}>
-              {rightPanelVisible ? <PanelRightClose size={17} className="text-gray-500" /> : <PanelRightOpen size={17} className="text-gray-500" />}
-            </button>
             <div className="relative">
               <button
                 onClick={async () => {
@@ -643,14 +727,50 @@ const AdvisorDashboard = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2.5 pl-3 border-l border-gray-100">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-800 leading-none">{firstName}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Asesor</p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => setActiveTab('perfil')}>
-                {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xs font-black">{firstName[0]}</span>}
-              </div>
+            <div className="relative flex items-center pl-3 border-l border-gray-100" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-bold text-gray-800 leading-none">{firstName}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Asesor</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xs font-black">{firstName[0]}</span>}
+                </div>
+                <ChevronDown size={13} className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-bold text-gray-800 leading-tight">{profile?.full_name}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{advisorData?.title || 'Asesor'}</p>
+                  </div>
+                  <div className="p-1">
+                    {[
+                      { label: 'Editar perfil',          icon: User,          tab: 'perfil' },
+                      { label: 'Mis sesiones',            icon: Calendar,      tab: 'sesiones' },
+                      { label: 'Reporte de ingresos',     icon: DollarSign,    tab: 'ingresos' },
+                      { label: 'Solicitudes pendientes',  icon: Bell,          tab: 'solicitudes' },
+                      { label: 'Mensajes',                icon: MessageCircle, tab: 'mensajes' },
+                    ].map((opt) => (
+                      <button key={opt.label}
+                        onClick={() => { setActiveTab(opt.tab); setShowProfileMenu(false); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+                        <opt.icon size={14} className="text-[#10B981] flex-shrink-0" />
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-1 border-t border-gray-100">
+                    <button onClick={() => { setShowProfileMenu(false); handleLogout(); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-400 hover:bg-red-50 rounded-lg transition-all">
+                      <LogOut size={14} className="flex-shrink-0" /> Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -778,8 +898,8 @@ const AdvisorDashboard = () => {
                             <p className="text-gray-400 text-xs">{session.profiles?.email}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => handleAccept(session.id)} className="px-4 py-2 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Aceptar</button>
-                            <button onClick={() => handleReject(session.id)} className="px-4 py-2 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Rechazar</button>
+                            <button onClick={() => handleAccept(session)} className="px-4 py-2 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Aceptar</button>
+                            <button onClick={() => handleReject(session)} className="px-4 py-2 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Rechazar</button>
                           </div>
                         </div>
                       ))}
@@ -817,65 +937,318 @@ const AdvisorDashboard = () => {
               </div>
             )}
 
-            {/* ── REQUESTS ── */}
-            {activeTab === 'solicitudes' && (
-              <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Solicitudes de sesión</h1>
-                {pendingSessions.length > 0 ? (
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                    {pendingSessions.map((session, i) => (
-                      <div key={session.id} className={`flex items-center gap-4 p-5 hover:bg-[#f1f3f5] transition-all ${i < pendingSessions.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                        <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-600 flex-shrink-0 overflow-hidden">
-                          {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : session.profiles?.full_name?.[0] || 'C'}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-800">{session.profiles?.full_name || 'Cliente'}</p>
-                          <p className="text-[#10B981] text-xs font-semibold">{session.services?.name}</p>
-                          <p className="text-gray-400 text-xs">{session.profiles?.email}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleAccept(session.id)} className="px-5 py-2.5 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all">Aceptar</button>
-                          <button onClick={() => handleReject(session.id)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all">Rechazar</button>
-                        </div>
-                      </div>
+            {/* ── SOLICITUDES ── */}
+            {activeTab === 'solicitudes' && (() => {
+              const pendientes = sessions.filter(s => s.status === 'pendiente');
+              const enRevision = sessions.filter(s => s.status === 'en_revision');
+              const allRequests = [...pendientes, ...enRevision];
+              const shown = requestFilter === 'pendiente' ? pendientes : requestFilter === 'en_revision' ? enRevision : allRequests;
+              const formatDate = (d: string | null) => d
+                ? new Date(d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                : 'Fecha por coordinar';
+              const formatTime = (d: string | null) => d
+                ? new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                : null;
+
+              return (
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-800">Solicitudes de sesión</h1>
+                      <p className="text-gray-400 text-sm mt-0.5">Gestiona las solicitudes de tus clientes</p>
+                    </div>
+                  </div>
+
+                  {/* SUB-FILTRO */}
+                  <div className="flex gap-2">
+                    {[
+                      { id: 'pendiente',   label: 'Pendientes',   count: pendientes.length },
+                      { id: 'en_revision', label: 'En revisión',  count: enRevision.length },
+                      { id: 'todas',       label: 'Todas',        count: allRequests.length },
+                    ].map((f) => (
+                      <button key={f.id} onClick={() => setRequestFilter(f.id)}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                          requestFilter === f.id ? 'bg-[#0A0E27] text-white border-transparent' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                        }`}>
+                        {f.label}
+                        {f.count > 0 && (
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${requestFilter === f.id ? 'bg-white/20' : 'bg-amber-50 text-amber-500'}`}>
+                            {f.count}
+                          </span>
+                        )}
+                      </button>
                     ))}
                   </div>
-                ) : (
-                  <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
-                    <Clock size={32} className="text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400">Sin solicitudes pendientes</p>
-                  </div>
-                )}
-              </div>
-            )}
+
+                  {shown.length > 0 ? (
+                    <div className="space-y-4">
+                      {shown.map((session) => {
+                        const clientName = session.profiles?.full_name || 'Cliente';
+                        const isReview = session.status === 'en_revision';
+                        return (
+                          <div key={session.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${isReview ? 'border-blue-200' : 'border-amber-200'}`}>
+                            {/* Status strip */}
+                            <div className={`px-5 py-2 flex items-center gap-2 ${isReview ? 'bg-blue-50 border-b border-blue-100' : 'bg-amber-50 border-b border-amber-100'}`}>
+                              <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isReview ? 'bg-blue-400' : 'bg-amber-400'}`} />
+                              <span className={`text-[11px] font-bold uppercase tracking-wider ${isReview ? 'text-blue-600' : 'text-amber-600'}`}>
+                                {isReview ? 'En revisión' : 'Pendiente de respuesta'}
+                              </span>
+                              <span className="text-gray-400 text-[10px] ml-auto">
+                                {new Date(session.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+
+                            <div className="p-5">
+                              <div className="flex items-start gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-lg flex-shrink-0 overflow-hidden">
+                                  {session.profiles?.avatar_url
+                                    ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                    : clientName[0]
+                                  }
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-gray-800">{clientName}</p>
+                                  <p className="text-gray-400 text-xs">{session.profiles?.email}</p>
+                                  {session.services?.name && (
+                                    <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#10B981]/10 text-[#10B981]">
+                                      {session.services.name}
+                                    </span>
+                                  )}
+                                </div>
+                                {session.price && (
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-lg font-black text-gray-800">${session.price}</p>
+                                    <p className="text-gray-400 text-[10px]">pagado</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Detalles de la solicitud */}
+                              <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Fecha solicitada</p>
+                                  <p className="text-sm font-semibold text-gray-700">{formatDate(session.scheduled_at)}</p>
+                                  {formatTime(session.scheduled_at) && (
+                                    <p className="text-xs text-[#10B981] font-bold mt-0.5">{formatTime(session.scheduled_at)}</p>
+                                  )}
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Tema / Motivo</p>
+                                  <p className="text-sm font-semibold text-gray-700">{session.topic || 'No especificado'}</p>
+                                </div>
+                              </div>
+                              {session.notes && (
+                                <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 mb-4">
+                                  <p className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold mb-1">Notas del cliente</p>
+                                  <p className="text-sm text-gray-700 leading-relaxed">"{session.notes}"</p>
+                                </div>
+                              )}
+
+                              {/* ACCIONES */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {!isReview && (
+                                  <button
+                                    onClick={() => handleSetReview(session)}
+                                    className="flex items-center gap-1.5 px-4 py-2 border border-blue-200 text-blue-500 text-xs font-bold rounded-xl hover:bg-blue-50 transition-all"
+                                  >
+                                    <Clock size={13} /> En revisión
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleAccept(session)}
+                                  className="flex items-center gap-1.5 px-5 py-2 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all"
+                                >
+                                  <CheckCircle size={13} /> Aceptar sesión
+                                </button>
+                                <button
+                                  onClick={() => handleReject(session)}
+                                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-500 text-xs font-bold rounded-xl hover:bg-gray-50 transition-all ml-auto"
+                                >
+                                  <XCircle size={13} /> Rechazar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+                      <Clock size={32} className="text-gray-200 mx-auto mb-4" />
+                      <p className="text-gray-500 font-semibold mb-1">Sin solicitudes {requestFilter === 'pendiente' ? 'pendientes' : requestFilter === 'en_revision' ? 'en revisión' : ''}</p>
+                      <p className="text-gray-400 text-sm">Las nuevas solicitudes de tus clientes aparecerán aquí</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── SESSIONS ── */}
-            {activeTab === 'sesiones' && (
-              <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Historial de sesiones</h1>
-                {sessions.length > 0 ? (
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                    {sessions.map((session, i) => (
-                      <div key={session.id} className={`flex items-center gap-4 p-5 hover:bg-[#f1f3f5] transition-all ${i < sessions.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-600 flex-shrink-0 overflow-hidden">
-                          {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : session.profiles?.full_name?.[0] || 'C'}
+            {activeTab === 'sesiones' && (() => {
+              const AVAIL_DAYS = ['lunes','martes','miercoles','jueves','viernes','sabado'];
+              const AVAIL_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb'];
+              const AVAIL_SLOTS = [
+                { id: 'manana', label: 'Mañana',  sub: '8 – 12h' },
+                { id: 'tarde',  label: 'Tarde',   sub: '12 – 18h' },
+                { id: 'noche',  label: 'Noche',   sub: '18 – 22h' },
+              ];
+              const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+                pendiente:   { label: 'Pendiente',   cls: 'bg-amber-50 text-amber-600' },
+                en_revision: { label: 'En revisión', cls: 'bg-blue-50 text-blue-500' },
+                confirmada:  { label: 'Confirmada',  cls: 'bg-emerald-50 text-emerald-600' },
+                completada:  { label: 'Completada',  cls: 'bg-[#10B981]/10 text-[#10B981]' },
+                rechazada:   { label: 'Rechazada',   cls: 'bg-red-50 text-red-500' },
+                cancelada:   { label: 'Cancelada',   cls: 'bg-gray-100 text-gray-400' },
+              };
+              const SESSION_FILTERS = [
+                { id: 'todas', label: 'Todas' },
+                { id: 'confirmada', label: 'Confirmadas' },
+                { id: 'completada', label: 'Completadas' },
+                { id: 'cancelada', label: 'Canceladas' },
+                { id: 'rechazada', label: 'Rechazadas' },
+              ];
+              const processedSessions = sessions.filter(s => !['pendiente','en_revision'].includes(s.status));
+              const filtered = sessionFilter === 'todas' ? processedSessions : processedSessions.filter(s => s.status === sessionFilter);
+              const formatDate = (d: string | null) => d
+                ? new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                : 'Fecha por coordinar';
+
+              return (
+                <div className="p-6 space-y-5">
+                  <h1 className="text-2xl font-bold text-gray-800">Sesiones</h1>
+
+                  {/* ── DISPONIBILIDAD ── */}
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <button
+                      onClick={() => setAvailOpen(!availOpen)}
+                      className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#10B981]/10 flex items-center justify-center">
+                          <Calendar size={16} className="text-[#10B981]" />
                         </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-800 text-sm">{session.profiles?.full_name || 'Cliente'}</p>
-                          <p className="text-gray-400 text-xs">{session.services?.name || 'Sesión de asesoría'}</p>
+                        <div className="text-left">
+                          <p className="font-bold text-gray-800 text-sm">Mi disponibilidad</p>
+                          <p className="text-gray-400 text-xs mt-0.5">
+                            {Object.values(availability).filter(Boolean).length > 0
+                              ? `${Object.values(availability).filter(Boolean).length} franjas activas`
+                              : 'Configura cuándo puedes atender clientes'
+                            }
+                          </p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${getStatusStyle(session.status)}`}>{session.status}</span>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2">
+                        {savingAvail && <span className="text-[10px] text-gray-400">Guardando...</span>}
+                        <ChevronRight size={16} className={`text-gray-400 transition-transform ${availOpen ? 'rotate-90' : ''}`} />
+                      </div>
+                    </button>
+
+                    {availOpen && (
+                      <div className="px-6 pb-5 border-t border-gray-100">
+                        <p className="text-xs text-gray-400 mt-4 mb-3">Selecciona los días y franjas horarias en que estás disponible para atender sesiones:</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[360px]">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-[10px] text-gray-400 font-semibold pb-3 pr-3 w-20" />
+                                {AVAIL_LABELS.map((l, i) => (
+                                  <th key={i} className="text-center text-[10px] text-gray-500 font-bold pb-3 px-1">{l}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {AVAIL_SLOTS.map((slot) => (
+                                <tr key={slot.id}>
+                                  <td className="py-1.5 pr-3">
+                                    <p className="text-xs font-semibold text-gray-700">{slot.label}</p>
+                                    <p className="text-[10px] text-gray-400">{slot.sub}</p>
+                                  </td>
+                                  {AVAIL_DAYS.map((day, di) => {
+                                    const key = `${day}_${slot.id}`;
+                                    const active = !!availability[key];
+                                    return (
+                                      <td key={day} className="py-1.5 px-1 text-center">
+                                        <button
+                                          onClick={() => toggleAvail(key)}
+                                          title={`${AVAIL_LABELS[di]} ${slot.label}`}
+                                          className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${
+                                            active
+                                              ? 'bg-[#10B981] text-white shadow-sm shadow-[#10B981]/20'
+                                              : 'bg-gray-100 text-gray-300 hover:bg-gray-200'
+                                          }`}
+                                        >
+                                          {active ? '✓' : '·'}
+                                        </button>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-[10px] text-gray-300 mt-3">Los cambios se guardan automáticamente</p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
-                    <Calendar size={32} className="text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400">Aún no hay sesiones registradas</p>
-                  </div>
-                )}
-              </div>
-            )}
+
+                  {/* FILTROS */}
+                  {processedSessions.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {SESSION_FILTERS.map((f) => {
+                        const count = f.id === 'todas' ? processedSessions.length : processedSessions.filter(s => s.status === f.id).length;
+                        if (f.id !== 'todas' && count === 0) return null;
+                        const active = sessionFilter === f.id;
+                        return (
+                          <button key={f.id} onClick={() => setSessionFilter(f.id)}
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                              active ? 'bg-[#0A0E27] text-white border-transparent' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                            }`}>
+                            {f.label}
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* LISTA */}
+                  {filtered.length > 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                      {filtered.map((session, i) => {
+                        const sc = STATUS_LABELS[session.status] || { label: session.status, cls: 'bg-gray-100 text-gray-400' };
+                        const clientName = session.profiles?.full_name || 'Cliente';
+                        return (
+                          <div key={session.id} className={`flex items-center gap-4 p-5 hover:bg-[#f1f3f5] transition-all ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-600 flex-shrink-0 overflow-hidden">
+                              {session.profiles?.avatar_url ? <img src={session.profiles.avatar_url} alt="" className="w-full h-full object-cover" /> : clientName[0]}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-800 text-sm">{clientName}</p>
+                              <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
+                                <span>{session.services?.name || 'Sesión de asesoría'}</span>
+                                <span className="text-gray-200">·</span>
+                                <span>{formatDate(session.scheduled_at)}</span>
+                                {session.topic && <><span className="text-gray-200">·</span><span className="truncate max-w-[120px]">{session.topic}</span></>}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${sc.cls}`}>{sc.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+                      <Calendar size={32} className="text-gray-200 mx-auto mb-4" />
+                      <p className="text-gray-500 font-semibold mb-1">Sin sesiones</p>
+                      <p className="text-gray-400 text-sm">Las sesiones confirmadas y completadas aparecerán aquí</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── REVENUE ── */}
             {activeTab === 'ingresos' && (
@@ -1026,68 +1399,194 @@ const AdvisorDashboard = () => {
 
           </div>
 
-          {/* ── RIGHT PANEL ── */}
-          <div
-            className="hidden xl:flex w-72 flex-col bg-white border-l border-gray-200 flex-shrink-0 shadow-sm overflow-hidden"
-            style={{
-              width: rightPanelVisible ? '288px' : '0px',
-              opacity: rightPanelVisible ? 1 : 0,
-              transition: 'width 0.35s ease, opacity 0.3s ease',
-              minWidth: rightPanelVisible ? '288px' : '0px',
-              borderLeftWidth: rightPanelVisible ? '1px' : '0px',
-            }}
-          >
-              <div className="px-5 py-5 border-b border-gray-100">
-                <div className="text-center">
-                  <div className="w-14 h-14 rounded-full bg-[#10B981]/10 flex items-center justify-center mx-auto mb-2 overflow-hidden border-2 border-[#10B981]/20">
-                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xl font-black">{firstName[0]}</span>}
+        </div>
+      </div>
+
+      {/* ── ACCEPT MODAL ── */}
+      {acceptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !processingAction && setAcceptModal(null)} />
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="bg-[#10B981]/10 border-b border-[#10B981]/20 px-6 py-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#10B981]/20 flex items-center justify-center">
+                <CheckCircle size={18} className="text-[#10B981]" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-800">Confirmar aceptación</p>
+                <p className="text-xs text-gray-400">Revisa los detalles antes de confirmar</p>
+              </div>
+              <button onClick={() => setAcceptModal(null)} disabled={processingAction}
+                className="ml-auto p-1.5 hover:bg-white/60 rounded-lg transition-all disabled:opacity-40">
+                <X size={16} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-lg overflow-hidden flex-shrink-0">
+                  {acceptModal.profiles?.avatar_url
+                    ? <img src={acceptModal.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : (acceptModal.profiles?.full_name?.[0] || 'C')
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800">{acceptModal.profiles?.full_name || 'Cliente'}</p>
+                  <p className="text-gray-400 text-xs">{acceptModal.profiles?.email}</p>
+                </div>
+                {acceptModal.price && (
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xl font-black text-gray-800">${acceptModal.price}</p>
+                    <p className="text-[10px] text-gray-400">pagado</p>
                   </div>
-                  <p className="font-bold text-gray-800 text-sm">{profile?.full_name}</p>
-                  <p className="text-gray-400 text-xs">{advisorData?.title || 'Asesor'}</p>
-                  {advisorData?.rating && (
-                    <div className="flex items-center justify-center gap-1 mt-1.5">
-                      <Star size={12} className="text-[#10B981] fill-[#10B981]" />
-                      <span className="text-xs font-bold text-gray-700">{advisorData.rating.toFixed(1)}</span>
-                      <span className="text-xs text-gray-400">({advisorData.total_reviews || 0})</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-center gap-2 mt-3">
-                    <button onClick={() => setActiveTab('mensajes')} title="Mensajes"
-                      className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
-                      <MessageCircle size={14} className="text-gray-500" />
-                    </button>
-                    <button onClick={() => setActiveTab('perfil')} title="Editar perfil"
-                      className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
-                      <Settings size={14} className="text-gray-500" />
-                    </button>
-                    <AdvisorProfileMenu onNavigate={setActiveTab} />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Servicio</p>
+                  <p className="text-sm font-semibold text-gray-700">{acceptModal.services?.name || 'Sesión de asesoría'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Fecha solicitada</p>
+                  <p className="text-sm font-semibold text-gray-700">
+                    {acceptModal.scheduled_at
+                      ? new Date(acceptModal.scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : 'Por coordinar'
+                    }
+                  </p>
+                </div>
+                {acceptModal.topic && (
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 col-span-2">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Tema</p>
+                    <p className="text-sm font-semibold text-gray-700">{acceptModal.topic}</p>
                   </div>
+                )}
+                {acceptModal.notes && (
+                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 col-span-2">
+                    <p className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold mb-0.5">Notas del cliente</p>
+                    <p className="text-sm text-gray-700">"{acceptModal.notes}"</p>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400 bg-[#10B981]/5 border border-[#10B981]/20 rounded-xl px-4 py-3">
+                Al aceptar, el cliente recibirá una notificación confirmando su sesión.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setAcceptModal(null)} disabled={processingAction}
+                className="flex-1 py-3 border border-gray-200 text-gray-500 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={confirmAccept} disabled={processingAction}
+                className="flex-1 py-3 bg-[#10B981] text-white text-sm font-bold rounded-xl hover:bg-[#0ea371] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {processingAction ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Confirmando...</>
+                ) : (
+                  <><CheckCircle size={15} /> Confirmar sesión</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── REJECT MODAL ── */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !processingAction && setRejectModal(null)} />
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="bg-red-50 border-b border-red-100 px-6 py-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center">
+                <XCircle size={18} className="text-red-400" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-800">Rechazar solicitud</p>
+                <p className="text-xs text-gray-400">Indica el motivo al cliente</p>
+              </div>
+              <button onClick={() => setRejectModal(null)} disabled={processingAction}
+                className="ml-auto p-1.5 hover:bg-white/60 rounded-lg transition-all disabled:opacity-40">
+                <X size={16} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="w-9 h-9 rounded-xl bg-gray-200 flex items-center justify-center font-bold text-gray-500 flex-shrink-0 overflow-hidden">
+                  {rejectModal.profiles?.avatar_url
+                    ? <img src={rejectModal.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : (rejectModal.profiles?.full_name?.[0] || 'C')
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-700 text-sm">{rejectModal.profiles?.full_name || 'Cliente'}</p>
+                  <p className="text-gray-400 text-xs truncate">{rejectModal.services?.name || 'Sesión de asesoría'}</p>
                 </div>
               </div>
 
-              {/* Stats rápidas en panel derecho */}
-              <div className="px-5 py-4 space-y-3">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Resumen</p>
-                {[
-                  { label: 'Total sesiones', value: sessions.length },
-                  { label: 'Completadas', value: completedSessions.length },
-                  { label: 'Solicitudes', value: pendingSessions.length },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-xs text-gray-500">{item.label}</span>
-                    <span className="text-xs font-bold text-gray-800">{item.value}</span>
-                  </div>
-                ))}
-                <button
-                  onClick={() => setActiveTab('mensajes')}
-                  className="w-full mt-3 py-2.5 bg-[#0A0E27] text-white text-xs font-bold rounded-xl hover:bg-[#0A0E27]/90 transition-all flex items-center justify-center gap-2">
-                  <MessageCircle size={13} /> Ir a mensajes
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-2">Motivo rápido (opcional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'No disponible en esa fecha',
+                    'Fuera de mi especialidad',
+                    'Agenda completa',
+                    'Información insuficiente',
+                  ].map((preset) => (
+                    <button key={preset}
+                      onClick={() => { setRejectPreset(preset); setRejectMessage(preset); }}
+                      className={`text-[11px] font-medium px-3 py-1.5 rounded-full border transition-all ${
+                        rejectPreset === preset
+                          ? 'bg-[#0A0E27] text-white border-transparent'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                      }`}>
+                      {preset}
+                    </button>
+                  ))}
+                </div>
               </div>
-          </div>
 
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">
+                  Mensaje para el cliente <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  value={rejectMessage}
+                  onChange={(e) => { setRejectMessage(e.target.value); if (e.target.value !== rejectPreset) setRejectPreset(''); }}
+                  rows={4}
+                  placeholder="Explica brevemente por qué no puedes aceptar esta solicitud. Sé respetuoso y claro..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-300 focus:border-red-300 focus:ring-2 focus:ring-red-100 outline-none resize-none bg-gray-50"
+                />
+                <p className={`text-[10px] mt-1 ${rejectMessage.trim().length < 10 ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {rejectMessage.trim().length}/200 · Mínimo 10 caracteres
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button onClick={() => setRejectModal(null)} disabled={processingAction}
+                className="flex-1 py-3 border border-gray-200 text-gray-500 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50">
+                Volver
+              </button>
+              <button onClick={confirmReject} disabled={processingAction || rejectMessage.trim().length < 10}
+                className="flex-1 py-3 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+                {processingAction ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enviando...</>
+                ) : (
+                  <><XCircle size={15} /> Enviar rechazo</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {showNotifications && <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />}
     </div>

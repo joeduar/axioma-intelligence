@@ -4,10 +4,11 @@ import {
   Calendar, Clock, Star, Search, ChevronRight, CheckCircle,
   MessageCircle, Send, MoreHorizontal, Bell, Settings,
   TrendingUp, Users, DollarSign, Activity, ArrowUpRight,
-  Paperclip, Smile, X, Plus, PanelRightClose, PanelRightOpen,
+  Paperclip, Smile, X, Plus,
   LayoutDashboard, User, LogOut, ChevronLeft, Shield,
-  XCircle, ExternalLink, AlertCircle, ChevronDown
+  XCircle, ExternalLink, AlertCircle, ChevronDown, Loader2, Moon, Sun
 } from 'lucide-react';
+import { useDarkMode } from '../context/DarkModeContext';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
@@ -706,7 +707,7 @@ const ClientDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const [showChat, setShowChat] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -715,6 +716,14 @@ const ClientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sessionToCancel, setSessionToCancel] = useState<any>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState('todas');
+  const [sessionDetailModal, setSessionDetailModal] = useState<any>(null);
+  const [deletingSession, setDeletingSession] = useState<string | null>(null);
+  const [schedulingDate, setSchedulingDate] = useState('');
+  const [schedulingTime, setSchedulingTime] = useState('');
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   // Profile form state
   const [formFullName, setFormFullName] = useState('');
@@ -722,8 +731,20 @@ const ClientDashboard = () => {
   const [formCountry, setFormCountry] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     if (user) fetchAll();
@@ -733,7 +754,7 @@ const ClientDashboard = () => {
     setLoading(true);
     const [sessionsRes, subsRes, notifsRes] = await Promise.all([
       supabase.from('sessions')
-        .select('*, advisors(id, title, category, profiles(full_name, avatar_url)), services(name, price, duration)')
+        .select('*, advisors(id, user_id, title, category, profiles(full_name, avatar_url)), services(name, price, duration)')
         .eq('client_id', user?.id).order('created_at', { ascending: false }),
       supabase.from('subscriptions')
         .select('*, advisors(title, category, profiles(full_name, avatar_url))')
@@ -753,8 +774,82 @@ const ClientDashboard = () => {
     setLoading(false);
   };
 
-  const handleCancelSession = async (sessionId: string) => {
-    await supabase.from('sessions').update({ status: 'cancelada' }).eq('id', sessionId);
+  const handleCancelSession = (session: any) => {
+    setSessionToCancel(session);
+  };
+
+  const confirmCancelSession = async () => {
+    if (!sessionToCancel) return;
+    setCancelling(true);
+
+    // Intentar con cancelled_by; si la columna no existe, reintentar sin ella
+    let { error } = await supabase
+      .from('sessions')
+      .update({ status: 'cancelada', cancelled_by: 'cliente' })
+      .eq('id', sessionToCancel.id);
+
+    if (error && (error.code === '42703' || error.message?.includes('column'))) {
+      const res = await supabase
+        .from('sessions')
+        .update({ status: 'cancelada' })
+        .eq('id', sessionToCancel.id);
+      error = res.error;
+    }
+
+    if (!error) {
+      // Notificar al asesor
+      const { data: advData } = await supabase
+        .from('advisors').select('user_id').eq('id', sessionToCancel.advisor_id).single();
+      if (advData?.user_id) {
+        const clientName = profile?.full_name || 'Un cliente';
+        const dateLabel = sessionToCancel.scheduled_at
+          ? new Date(sessionToCancel.scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+          : 'fecha por coordinar';
+        try { await supabase.from('notifications').insert({
+          user_id: advData.user_id,
+          title: 'Sesión cancelada por el cliente',
+          message: `${clientName} canceló la sesión del ${dateLabel}.`,
+          type: 'session_cancelled',
+          read: false,
+        }); } catch (_) {}
+      }
+    }
+
+    setCancelling(false);
+    setSessionToCancel(null);
+    fetchAll();
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    setDeletingSession(id);
+    const { error } = await supabase.from('sessions').delete().eq('id', id);
+    // Si RLS bloquea el delete, intentar soft-delete marcando como archivada
+    if (error) {
+      await supabase.from('sessions').update({ status: 'cancelada' }).eq('id', id).eq('client_id', user?.id);
+    }
+    setDeletingSession(null);
+    fetchAll();
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!sessionDetailModal || !schedulingDate) return;
+    setSavingSchedule(true);
+    const dt = schedulingTime ? `${schedulingDate}T${schedulingTime}` : `${schedulingDate}T09:00`;
+    const scheduled_at = new Date(dt).toISOString();
+    await supabase.from('sessions').update({ scheduled_at }).eq('id', sessionDetailModal.id);
+    if (sessionDetailModal.advisors?.user_id) {
+      const dateLabel = new Date(scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+      const timeLabel = schedulingTime || '09:00';
+      try { await supabase.from('notifications').insert({
+        user_id: sessionDetailModal.advisors.user_id,
+        title: 'Cliente propuso fecha para sesión',
+        message: `${profile?.full_name || 'Tu cliente'} propuso el ${dateLabel} a las ${timeLabel}.`,
+        type: 'session_scheduled',
+        read: false,
+      }); } catch (_) {}
+    }
+    setSavingSchedule(false);
+    setSessionDetailModal((prev: any) => ({ ...prev, scheduled_at }));
     fetchAll();
   };
 
@@ -820,8 +915,197 @@ const ClientDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#f1f3f5] text-gray-800 overflow-hidden">
+    <div className={`flex h-screen overflow-hidden ${isDark ? 'dark bg-[#0d1133] text-[#e2e6f3]' : 'bg-[#f1f3f5] text-gray-800'}`}>
       {loggingOut && <LogoutScreen onComplete={() => navigate('/')} />}
+
+      {/* ── MODAL: DETALLE DE SESIÓN CONFIRMADA ── */}
+      {sessionDetailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !savingSchedule && setSessionDetailModal(null)} />
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+            {/* Header */}
+            <div className="bg-[#10B981]/10 border-b border-[#10B981]/20 px-6 py-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#10B981]/20 flex items-center justify-center">
+                <CheckCircle size={18} className="text-[#10B981]" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-800">Sesión confirmada</p>
+                <p className="text-xs text-gray-400">Coordina los detalles con tu asesor</p>
+              </div>
+              <button onClick={() => setSessionDetailModal(null)} disabled={savingSchedule}
+                className="ml-auto p-1.5 hover:bg-white/60 rounded-lg transition-all disabled:opacity-40">
+                <X size={16} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              {/* Advisor info */}
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg overflow-hidden flex-shrink-0">
+                  {sessionDetailModal.advisors?.profiles?.avatar_url
+                    ? <img src={sessionDetailModal.advisors.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                    : (sessionDetailModal.advisors?.profiles?.full_name?.[0] || 'A')
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-800 text-sm">{sessionDetailModal.advisors?.profiles?.full_name || 'Asesor'}</p>
+                  <p className="text-gray-400 text-xs">{sessionDetailModal.advisors?.title || sessionDetailModal.advisors?.category || 'Asesoría'}</p>
+                </div>
+                {sessionDetailModal.price && (
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-lg font-black text-gray-800">${sessionDetailModal.price}</p>
+                    <p className="text-[10px] text-gray-400">pagado</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Session info */}
+              <div className="grid grid-cols-2 gap-3">
+                {sessionDetailModal.services?.name && (
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Servicio</p>
+                    <p className="text-sm font-semibold text-gray-700">{sessionDetailModal.services.name}</p>
+                  </div>
+                )}
+                {sessionDetailModal.topic && (
+                  <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Tema</p>
+                    <p className="text-sm font-semibold text-gray-700">{sessionDetailModal.topic}</p>
+                  </div>
+                )}
+                {sessionDetailModal.notes && (
+                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 col-span-2">
+                    <p className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold mb-0.5">Tus notas</p>
+                    <p className="text-sm text-gray-700">"{sessionDetailModal.notes}"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Schedule section */}
+              <div className="border border-dashed border-gray-200 rounded-xl p-4">
+                <p className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+                  <Calendar size={13} className="text-[#10B981]" />
+                  {sessionDetailModal.scheduled_at ? 'Fecha programada' : 'Proponer fecha y hora'}
+                </p>
+                {sessionDetailModal.scheduled_at && !schedulingDate && (
+                  <p className="text-sm font-semibold text-gray-700 mb-3">
+                    {new Date(sessionDetailModal.scheduled_at).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    {' '}·{' '}
+                    {new Date(sessionDetailModal.scheduled_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 block mb-1">Fecha</label>
+                    <input type="date" value={schedulingDate}
+                      onChange={(e) => setSchedulingDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:border-[#10B981] outline-none bg-gray-50" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-500 block mb-1">Hora</label>
+                    <input type="time" value={schedulingTime}
+                      onChange={(e) => setSchedulingTime(e.target.value)}
+                      disabled={!schedulingDate}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:border-[#10B981] outline-none bg-gray-50 disabled:opacity-40" />
+                  </div>
+                </div>
+                {schedulingDate && (
+                  <button onClick={handleSaveSchedule} disabled={savingSchedule}
+                    className="mt-3 w-full py-2.5 bg-[#0A0E27] text-white text-xs font-bold rounded-xl hover:bg-[#0A0E27]/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                    {savingSchedule
+                      ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Guardando...</>
+                      : <><CheckCircle size={13} />Confirmar fecha</>
+                    }
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[10px] text-gray-400 text-center">
+                También puedes coordinar por mensajes directamente con tu asesor
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 space-y-2">
+              <button
+                onClick={() => { setSessionDetailModal(null); navigate(`/sesion/${sessionDetailModal.id}`); }}
+                className="w-full py-3.5 bg-[#10B981] text-white text-sm font-bold rounded-xl hover:bg-[#0ea371] transition-all flex items-center justify-center gap-2">
+                <ExternalLink size={14} /> Unirse a la sesión
+              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setSessionDetailModal(null)}
+                  className="flex-1 py-2.5 border border-gray-200 text-gray-500 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-all">
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => { setSessionDetailModal(null); setActiveTab('mensajes'); }}
+                  className="flex-1 py-2.5 bg-[#0A0E27] text-white text-sm font-bold rounded-xl hover:bg-[#0A0E27]/90 transition-all flex items-center justify-center gap-2">
+                  <MessageCircle size={14} /> Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: CONFIRMAR CANCELACIÓN ── */}
+      {sessionToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSessionToCancel(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <XCircle size={22} className="text-red-400" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 text-center mb-1">¿Cancelar esta sesión?</h3>
+            <p className="text-gray-400 text-sm text-center mb-5 leading-relaxed">
+              Esta acción no se puede deshacer. El asesor recibirá una notificación de la cancelación.
+            </p>
+
+            {/* Detalles de la sesión */}
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Asesor</span>
+                <span className="font-semibold text-gray-700">{sessionToCancel.advisors?.profiles?.full_name || 'Asesor'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Especialidad</span>
+                <span className="font-semibold text-gray-700">{sessionToCancel.advisors?.title || sessionToCancel.advisors?.category || '—'}</span>
+              </div>
+              {sessionToCancel.scheduled_at && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Fecha</span>
+                  <span className="font-semibold text-gray-700">
+                    {new Date(sessionToCancel.scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Estado actual</span>
+                <span className="font-semibold text-amber-600 capitalize">{sessionToCancel.status}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSessionToCancel(null)}
+                className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all"
+              >
+                Volver
+              </button>
+              <button
+                onClick={confirmCancelSession}
+                disabled={cancelling}
+                className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {cancelling ? <><Loader2 size={14} className="animate-spin" /> Cancelando...</> : 'Sí, cancelar sesión'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── SIDEBAR ── */}
       <aside className={`flex flex-col h-full bg-white border-r border-gray-200 transition-all duration-300 flex-shrink-0 shadow-sm ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
@@ -856,6 +1140,11 @@ const ClientDashboard = () => {
         </nav>
 
         <div className="px-2 pb-2 space-y-0.5 border-t border-gray-100 pt-2">
+          <button onClick={toggleDark}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}>
+            {isDark ? <Sun size={17} className="flex-shrink-0" /> : <Moon size={17} className="flex-shrink-0" />}
+            {!sidebarCollapsed && <span className="text-xs font-semibold">{isDark ? 'Modo claro' : 'Modo oscuro'}</span>}
+          </button>
           <button onClick={handleLogout}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-50 transition-all ${sidebarCollapsed ? 'justify-center' : ''}`}>
             <LogOut size={17} className="flex-shrink-0" />
@@ -878,12 +1167,6 @@ const ClientDashboard = () => {
             {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'progreso' ? 'Progreso' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'explorar' ? 'Explorar' : activeTab === 'mensajes' ? 'Mensajes' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
-            {/* Toggle panel derecho */}
-            <button onClick={() => setRightPanelVisible(!rightPanelVisible)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-all" title={rightPanelVisible ? 'Ocultar panel' : 'Mostrar panel'}>
-              {rightPanelVisible ? <PanelRightClose size={17} className="text-gray-500" /> : <PanelRightOpen size={17} className="text-gray-500" />}
-            </button>
-
             {/* Notificaciones */}
             <div className="relative">
               <button
@@ -926,15 +1209,50 @@ const ClientDashboard = () => {
               )}
             </div>
 
-            {/* Avatar */}
-            <div className="flex items-center gap-2.5 pl-3 border-l border-gray-100">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-800 leading-none">{firstName}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Cliente</p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => setActiveTab('perfil')}>
-                {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xs font-black">{firstName[0]}</span>}
-              </div>
+            {/* Avatar + dropdown */}
+            <div className="relative flex items-center pl-3 border-l border-gray-100" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-bold text-gray-800 leading-none">{firstName}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Cliente</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xs font-black">{firstName[0]}</span>}
+                </div>
+                <ChevronDown size={13} className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-bold text-gray-800 leading-tight">{profile?.full_name}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">@{profile?.email?.split('@')[0]}</p>
+                  </div>
+                  <div className="p-1">
+                    {[
+                      { label: 'Editar perfil',       icon: User,          tab: 'perfil' },
+                      { label: 'Mis sesiones',         icon: Calendar,      tab: 'sesiones' },
+                      { label: 'Progreso',             icon: Activity,      tab: 'progreso' },
+                      { label: 'Explorar asesores',    icon: Search,        tab: 'explorar' },
+                    ].map((opt) => (
+                      <button key={opt.label}
+                        onClick={() => { setActiveTab(opt.tab); setShowProfileMenu(false); }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+                        <opt.icon size={14} className="text-[#10B981] flex-shrink-0" />
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-1 border-t border-gray-100">
+                    <button onClick={() => { setShowProfileMenu(false); handleLogout(); }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-400 hover:bg-red-50 rounded-lg transition-all">
+                      <LogOut size={14} className="flex-shrink-0" /> Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -1115,7 +1433,7 @@ const ClientDashboard = () => {
                           <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${getStatusStyle(session.status)}`}>
                             {session.status}
                           </span>
-                          <SessionMenu session={session} onCancel={() => handleCancelSession(session.id)} />
+                          <SessionMenu session={session} onCancel={() => handleCancelSession(session)} />
                         </div>
                       ))}
                     </div>
@@ -1133,41 +1451,155 @@ const ClientDashboard = () => {
             )}
 
             {/* ── SESSIONS TAB ── */}
-            {activeTab === 'sesiones' && (
-              <div className="p-6 space-y-5">
-                <h1 className="text-2xl font-bold text-gray-800">Mis sesiones</h1>
-                {sessions.length > 0 ? (
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                    {sessions.map((session, i) => (
-                      <div key={session.id} className={`flex items-center gap-4 p-5 hover:bg-[#f1f3f5] transition-all ${i < sessions.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {session.advisors?.profiles?.avatar_url
-                            ? <img src={session.advisors.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                            : <span className="text-gray-500 font-bold text-sm">{session.advisors?.profiles?.full_name?.[0] || 'A'}</span>
-                          }
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-800 text-sm">{session.advisors?.profiles?.full_name || 'Asesor'}</p>
-                          <p className="text-gray-400 text-xs">{session.advisors?.title || session.advisors?.category || 'Asesoría'}</p>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${getStatusStyle(session.status)}`}>
-                          {session.status}
-                        </span>
-                        <SessionMenu session={session} onCancel={() => handleCancelSession(session.id)} />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
-                    <Calendar size={32} className="text-gray-200 mx-auto mb-4" />
-                    <p className="text-gray-400 mb-5">Sin sesiones registradas</p>
-                    <Link to="/asesores" className="inline-flex items-center gap-2 bg-[#0A0E27] text-white font-bold px-6 py-3 rounded-full text-xs">
-                      Explorar asesores <ChevronRight size={13} />
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
+            {activeTab === 'sesiones' && (() => {
+              const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+                pendiente:   { label: 'Pendiente',   cls: 'bg-amber-50 text-amber-600' },
+                en_revision: { label: 'En revisión', cls: 'bg-blue-50 text-blue-500' },
+                confirmada:  { label: 'Confirmada',  cls: 'bg-emerald-50 text-emerald-600' },
+                completada:  { label: 'Completada',  cls: 'bg-[#10B981]/10 text-[#10B981]' },
+                rechazada:   { label: 'Rechazada',   cls: 'bg-red-50 text-red-500' },
+                cancelada:   { label: 'Cancelada',   cls: 'bg-gray-100 text-gray-400' },
+              };
+              const FILTERS = [
+                { id: 'todas', label: 'Todas' },
+                { id: 'pendiente', label: 'Pendientes' },
+                { id: 'en_revision', label: 'En revisión' },
+                { id: 'confirmada', label: 'Confirmadas' },
+                { id: 'completada', label: 'Completadas' },
+                { id: 'rechazada', label: 'Rechazadas' },
+                { id: 'cancelada', label: 'Canceladas' },
+              ];
+              const filtered = sessionFilter === 'todas' ? sessions : sessions.filter(s => s.status === sessionFilter);
+              const formatDate = (d: string | null) => d
+                ? new Date(d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                : 'Fecha por coordinar';
+
+              return (
+                <div className="p-6 space-y-5">
+                  <h1 className="text-2xl font-bold text-gray-800">Mis sesiones</h1>
+
+                  {/* FILTROS */}
+                  {sessions.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {FILTERS.map((f) => {
+                        const count = f.id === 'todas' ? sessions.length : sessions.filter(s => s.status === f.id).length;
+                        if (f.id !== 'todas' && count === 0) return null;
+                        const active = sessionFilter === f.id;
+                        return (
+                          <button key={f.id} onClick={() => setSessionFilter(f.id)}
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                              active ? 'bg-[#0A0E27] text-white border-transparent' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                            }`}>
+                            {f.label}
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* LISTA */}
+                  {filtered.length > 0 ? (
+                    <div className="space-y-3">
+                      {filtered.map((session) => {
+                        const sc = STATUS_LABELS[session.status] || { label: session.status, cls: 'bg-gray-100 text-gray-400' };
+                        const advisorName = session.advisors?.profiles?.full_name || 'Asesor';
+                        const advisorTitle = session.advisors?.title || session.advisors?.category || 'Asesoría';
+                        const canCancel = session.status === 'pendiente' || session.status === 'en_revision' || session.status === 'confirmada';
+                        return (
+                          <div key={session.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-start gap-4">
+                              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {session.advisors?.profiles?.avatar_url
+                                  ? <img src={session.advisors.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                  : <span className="text-gray-500 font-bold">{advisorName[0]}</span>
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                  <p className="font-bold text-gray-800 text-sm">{advisorName}</p>
+                                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${sc.cls}`}>{sc.label}</span>
+                                </div>
+                                <p className="text-gray-400 text-xs mb-2">{advisorTitle}</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={11} className="text-gray-300" />
+                                    {formatDate(session.scheduled_at)}
+                                  </span>
+                                  {session.topic && (
+                                    <span className="flex items-center gap-1">
+                                      <MessageCircle size={11} className="text-gray-300" />
+                                      {session.topic}
+                                    </span>
+                                  )}
+                                  {session.services?.name && (
+                                    <span className="text-[#10B981] font-semibold">{session.services.name}</span>
+                                  )}
+                                </div>
+                                {session.status === 'rechazada' && session.rejection_reason && (
+                                  <div className="mt-2 px-3 py-2 bg-red-50 rounded-xl border border-red-100">
+                                    <p className="text-xs text-red-500 font-medium">Motivo: {session.rejection_reason}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {session.status === 'confirmada' && (
+                                  <button
+                                    onClick={() => {
+                                      const existing = session.scheduled_at ? new Date(session.scheduled_at) : null;
+                                      setSchedulingDate(existing ? existing.toISOString().split('T')[0] : '');
+                                      setSchedulingTime(existing ? existing.toTimeString().slice(0, 5) : '');
+                                      setSessionDetailModal(session);
+                                    }}
+                                    className="px-3 py-1.5 bg-[#10B981] text-white text-xs font-bold rounded-xl hover:bg-[#0ea371] transition-all flex items-center gap-1">
+                                    <ExternalLink size={11} /> Ver detalles
+                                  </button>
+                                )}
+                                {canCancel && (
+                                  <button
+                                    onClick={() => handleCancelSession(session)}
+                                    className="px-3 py-1.5 border border-red-200 text-red-400 text-xs font-semibold rounded-xl hover:bg-red-50 transition-all"
+                                  >
+                                    Cancelar
+                                  </button>
+                                )}
+                                {(session.status === 'cancelada' || session.status === 'rechazada') && (
+                                  <button
+                                    onClick={() => handleDeleteSession(session.id)}
+                                    disabled={deletingSession === session.id}
+                                    title="Eliminar registro"
+                                    className="px-2 py-1.5 border border-gray-200 text-gray-400 text-[10px] font-semibold rounded-xl hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-all disabled:opacity-40 flex items-center gap-1"
+                                  >
+                                    {deletingSession === session.id
+                                      ? <Loader2 size={11} className="animate-spin" />
+                                      : <X size={11} />
+                                    }
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center shadow-sm">
+                      <Calendar size={32} className="text-gray-200 mx-auto mb-4" />
+                      <p className="text-gray-400 mb-5">
+                        {sessionFilter === 'todas' ? 'Sin sesiones registradas' : `No hay sesiones con estado "${FILTERS.find(f => f.id === sessionFilter)?.label}"`}
+                      </p>
+                      {sessionFilter === 'todas' && (
+                        <Link to="/asesores" className="inline-flex items-center gap-2 bg-[#0A0E27] text-white font-bold px-6 py-3 rounded-full text-xs">
+                          Explorar asesores <ChevronRight size={13} />
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── PROGRESS TAB ── */}
             {activeTab === 'progreso' && (
@@ -1319,60 +1751,6 @@ const ClientDashboard = () => {
               </div>
             )}
 
-          </div>
-
-          {/* ── RIGHT PANEL ── */}
-          <div
-            className="hidden xl:flex w-72 flex-col bg-white border-l border-gray-200 flex-shrink-0 shadow-sm overflow-hidden"
-            style={{
-              width: rightPanelVisible ? '288px' : '0px',
-              opacity: rightPanelVisible ? 1 : 0,
-              transition: 'width 0.35s ease, opacity 0.3s ease',
-              minWidth: rightPanelVisible ? '288px' : '0px',
-              borderLeftWidth: rightPanelVisible ? '1px' : '0px',
-            }}
-          >
-              {/* Profile header */}
-              <div className="px-5 py-5 border-b border-gray-100">
-                <div className="text-center">
-                  <div className="w-14 h-14 rounded-full bg-[#10B981]/10 flex items-center justify-center mx-auto mb-2 overflow-hidden border-2 border-[#10B981]/20">
-                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[#10B981] text-xl font-black">{firstName[0]}</span>}
-                  </div>
-                  <p className="font-bold text-gray-800 text-sm">{profile?.full_name}</p>
-                  <p className="text-gray-400 text-xs">@{profile?.email?.split('@')[0]}</p>
-                  <div className="flex items-center justify-center gap-2 mt-3">
-                    <button onClick={() => setActiveTab('mensajes')} title="Mensajes"
-                      className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
-                      <MessageCircle size={14} className="text-gray-500" />
-                    </button>
-                    <button onClick={() => setActiveTab('perfil')} title="Configuración"
-                      className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-[#10B981]/10 hover:border-[#10B981]/30 transition-all">
-                      <Settings size={14} className="text-gray-500" />
-                    </button>
-                    <ProfileMenu onNavigate={setActiveTab} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats rápidas en panel derecho */}
-              <div className="px-5 py-4 space-y-3">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Resumen</p>
-                {[
-                  { label: 'Sesiones totales', value: sessions.length },
-                  { label: 'Completadas', value: completedSessions.length },
-                  { label: 'Plan activo', value: activeSub ? 'Sí' : 'No' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <span className="text-xs text-gray-500">{item.label}</span>
-                    <span className="text-xs font-bold text-gray-800">{item.value}</span>
-                  </div>
-                ))}
-                <button
-                  onClick={() => setActiveTab('mensajes')}
-                  className="w-full mt-3 py-2.5 bg-[#0A0E27] text-white text-xs font-bold rounded-xl hover:bg-[#0A0E27]/90 transition-all flex items-center justify-center gap-2">
-                  <MessageCircle size={13} /> Ir a mensajes
-                </button>
-              </div>
           </div>
 
         </div>

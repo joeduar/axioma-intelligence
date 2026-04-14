@@ -1,0 +1,204 @@
+/* ── DARK MODE OVERRIDES ─────────────────────────────────────────────────────
+   Applied when a container has class="dark" (the dashboard root div).
+   Public pages (home, asesores, etc.) are NOT affected.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── VARIABLES ── */
+.dark {
+  --dm-bg-page:    #0d1133;
+  --dm-bg-card:    #141937;
+  --dm-bg-panel:   #1a2048;
+  --dm-bg-input:   #0f1430;
+  --dm-border:     rgba(255,255,255,0.08);
+  --dm-border-md:  rgba(255,255,255,0.12);
+  --dm-text-1:     #e2e6f3;
+  --dm-text-2:     #9ca3bf;
+  --dm-text-3:     #5f6680;
+  --dm-hover:      rgba(255,255,255,0.04);
+
+  /* Fix Tailwind shadow color variable — prevents light-colored glow on hover */
+  --tw-shadow-color: rgba(0,0,0,0.35);
+}
+
+/* ── PAGE BACKGROUNDS ── */
+/* descendant selectors (most common case) */
+.dark .bg-gray-50  { background-color: var(--dm-bg-page) !important; }
+.dark .bg-gray-100 { background-color: var(--dm-bg-card) !important; }
+.dark .bg-white    { background-color: var(--dm-bg-card) !important; }
+/* same-element selectors (when .dark and bg-* are on the same element) */
+.dark.bg-gray-50   { background-color: var(--dm-bg-page) !important; }
+.dark.bg-gray-100  { background-color: var(--dm-bg-card) !important; }
+.dark.bg-white     { background-color: var(--dm-bg-card) !important; }
+
+/* Specific backgrounds used in dashboards */
+.dark .bg-\[\#f1f3f5\]  { background-color: rgba(255,255,255,0.04) !important; }
+.dark.bg-\[\#f1f3f5\]   { background-color: var(--dm-bg-page) !important; }
+.dark .bg-\[\#f8f9fa\] { background-color: var(--dm-bg-page) !important; }
+.dark .bg-\[\#F8FAFF\] { background-color: var(--dm-bg-page) !important; }
+
+/* Status-color light backgrounds (amber, blue, red, green) */
+.dark .bg-amber-50  { background-color: rgba(251,191,36,0.08)  !important; }
+.dark .bg-blue-50   { background-color: rgba(59,130,246,0.08)  !important; }
+.dark .bg-red-50    { background-color: rgba(239,68,68,0.08)   !important; }
+.dark .bg-green-50  { background-color: rgba(16,185,129,0.08)  !important; }
+
+/* ── SIDEBAR / NAV DARK BACKGROUNDS (keep them darker than main) ── */
+.dark .bg-\[\#0A0E27\] { background-color: #07091e !important; }
+.dark .bg-\[\#051A3F\] { background-color: #060f24 !important; }
+
+/* ── TEXT ── */
+.dark .text-gray-900 { color: var(--dm-text-1) !important; }
+.dark .text-gray-800 { color: var(--dm-text-1) !important; }
+.dark .text-gray-700 { color: var(--dm-text-2) !important; }
+.dark .text-gray-600 { color: var(--dm-text-2) !important; }
+.dark .text-gray-500 { color: var(--dm-text-3) !important; }
+.dark .text-gray-400 { color: var(--dm-text-3) !important; }
+.dark .text-gray-300 { color: #3d4468 !important; }
+
+.dark .text-\[\#0A0E27\] { color: var(--dm-text-1) !important; }
+.dark .text-\[\#051A3F\] { color: var(--dm-text-1) !important; }
+
+/* ── BORDERS ── */
+.dark .border-gray-50  { border-color: var(--dm-border) !important; }
+.dark .border-gray-100 { border-color: var(--dm-border) !important; }
+.dark .border-gray-200 { border-color: var(--dm-border-md) !important; }
+.dark .border-gray-300 { border-color: rgba(255,255,255,0.18) !important; }
+
+.dark .border-amber-100 { border-color: rgba(251,191,36,0.15) !important; }
+.dark .border-amber-200 { border-color: rgba(251,191,36,0.20) !important; }
+.dark .border-blue-100  { border-color: rgba(59,130,246,0.15) !important; }
+.dark .border-blue-200  { border-color: rgba(59,130,246,0.20) !important; }
+.dark .border-red-100   { border-color: rgba(239,68,68,0.15)  !important; }
+.dark .border-\[\#E8EDF5\] { border-color: var(--dm-border) !important; }
+
+/* ── INPUTS ── */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--dm-bg-input) !important;
+  border-color: var(--dm-border-md) !important;
+  color: var(--dm-text-1) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--dm-text-3) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #10B981 !important;
+  background-color: var(--dm-bg-input) !important;
+}
+
+/* ── HOVER STATES ── */
+.dark .hover\:bg-gray-50:hover   { background-color: var(--dm-hover) !important; }
+.dark .hover\:bg-gray-100:hover  { background-color: var(--dm-bg-panel) !important; }
+.dark .hover\:bg-red-50:hover    { background-color: rgba(239,68,68,0.08) !important; }
+.dark .hover\:bg-amber-50:hover  { background-color: rgba(251,191,36,0.08) !important; }
+.dark .hover\:bg-\[\#f1f3f5\]:hover { background-color: rgba(255,255,255,0.04) !important; }
+
+/* Group hover */
+.dark .group:hover .group-hover\:bg-gray-50 { background-color: var(--dm-hover) !important; }
+
+/* ── SHADOWS — fix glow/animation issue ──
+   Override both the CSS variable and the box-shadow to prevent
+   Tailwind's light shadow-color from showing as a white glow in dark mode. */
+.dark .shadow-gray-100,
+.dark .hover\:shadow-gray-100 {
+  --tw-shadow-color: rgba(0,0,0,0.3) !important;
+}
+.dark .hover\:shadow-gray-100:hover {
+  --tw-shadow-color: rgba(0,0,0,0.4) !important;
+}
+
+/* General shadow overrides */
+.dark .shadow-sm  { box-shadow: 0 1px 4px rgba(0,0,0,0.3)  !important; }
+.dark .shadow     { box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important; }
+.dark .shadow-md  { box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important; }
+.dark .shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.45) !important; }
+.dark .shadow-xl  { box-shadow: 0 12px 32px rgba(0,0,0,0.5) !important; }
+.dark .shadow-2xl { box-shadow: 0 20px 48px rgba(0,0,0,0.6) !important; }
+
+.dark .hover\:shadow-xl:hover  { box-shadow: 0 12px 32px rgba(0,0,0,0.55) !important; }
+.dark .hover\:shadow-md:hover  { box-shadow: 0 6px 20px rgba(0,0,0,0.45) !important; }
+
+/* ── BUTTONS ── */
+.dark button.bg-gray-100 {
+  background-color: var(--dm-bg-panel) !important;
+  color: var(--dm-text-2) !important;
+}
+.dark button.bg-gray-100:hover {
+  background-color: rgba(255,255,255,0.1) !important;
+}
+.dark button.bg-white {
+  background-color: var(--dm-bg-panel) !important;
+  border-color: var(--dm-border-md) !important;
+  color: var(--dm-text-1) !important;
+}
+
+/* ── ADVISOR CARDS ── */
+.dark .rounded-2xl.bg-white,
+.dark .rounded-xl.bg-white {
+  background-color: var(--dm-bg-card) !important;
+  border-color: var(--dm-border) !important;
+}
+
+/* Tag chips */
+.dark .bg-gray-50.border.border-gray-100 {
+  background-color: rgba(255,255,255,0.04) !important;
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text-3) !important;
+}
+
+/* ── CATEGORY FILTER PILLS ── */
+.dark .bg-white.text-gray-500 {
+  background-color: var(--dm-bg-panel) !important;
+  color: var(--dm-text-2) !important;
+  border-color: var(--dm-border) !important;
+}
+
+/* ── SIDEBAR / PANEL ── */
+.dark aside.bg-white {
+  background-color: #0a0f28 !important;
+  border-color: var(--dm-border) !important;
+}
+
+/* ── MODALS / DROPDOWNS ── */
+.dark .bg-white.rounded-2xl,
+.dark .bg-white.rounded-3xl,
+.dark .bg-white.rounded-xl {
+  background-color: var(--dm-bg-card) !important;
+}
+
+/* ── NOTIFICATION BADGES ── */
+.dark .bg-gray-100.text-gray-600 {
+  background-color: var(--dm-bg-panel) !important;
+  color: var(--dm-text-2) !important;
+}
+
+/* ── DIVIDERS ── */
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--dm-border) !important;
+}
+
+/* ── FOCUS RINGS ── */
+.dark .ring-1 { --tw-ring-color: rgba(255,255,255,0.08) !important; }
+
+/* ── SKELETON LOADERS ── */
+.dark .animate-pulse.bg-white,
+.dark .animate-pulse.bg-gray-100,
+.dark .animate-pulse.bg-gray-50 {
+  background-color: var(--dm-bg-panel) !important;
+}
+
+/* ── RECHARTS ── */
+.dark .recharts-cartesian-grid line { stroke: rgba(255,255,255,0.05) !important; }
+.dark .recharts-text { fill: var(--dm-text-3) !important; }
+
+/* ── SCROLLBAR dentro del contenedor dark ── */
+.dark ::-webkit-scrollbar-track { background: var(--dm-bg-page); }
+.dark ::-webkit-scrollbar-thumb { background: #2a3258; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #10B981; }
