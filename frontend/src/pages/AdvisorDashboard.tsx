@@ -6,7 +6,7 @@ import {
   ArrowUpRight, Activity, Paperclip, Smile, X,
   ChevronRight, ChevronLeft, ChevronDown, LayoutDashboard, User,
   LogOut, Shield, Star,
-  ExternalLink, AlertCircle, XCircle, TrendingUp, Moon, Sun
+  AlertCircle, XCircle, TrendingUp, Moon, Sun, Loader2
 } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import {
@@ -19,7 +19,8 @@ import AvatarUpload from '../components/AvatarUpload';
 import LogoutScreen from '../components/LogoutScreen';
 import AdvisorVerificationModule from '../components/AdvisorVerificationModule';
 import AdvisorPayoutSetup from '../components/AdvisorPayoutSetup';
-import AdvisorProfileExpanded from '../components/AdvisorProfileExpanded';
+import AdvisorProfileFull from '../components/AdvisorProfileFull';
+import SupportWidget from '../components/SupportWidget';
 
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -400,7 +401,7 @@ const NAV_ITEMS = [
   { id: 'mensajes',      label: 'Mensajes',       icon: MessageCircle },
   { id: 'perfil',        label: 'Perfil',         icon: User },
   { id: 'verificacion',  label: 'Verificación',   icon: Shield },
-  { id: 'pagos',         label: 'Datos de Cobro', icon: ExternalLink },
+  { id: 'soporte',       label: 'Soporte',        icon: MessageCircle },
 ];
 
 const CATEGORIES = ['Finanzas', 'Negocios', 'Datos & IA', 'Legal', 'Marketing', 'Tecnología', 'Recursos Humanos', 'Startups'];
@@ -435,8 +436,15 @@ const AdvisorDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio');
+  const [tabLoading, setTabLoading] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
+
+  const switchTab = (id: string) => {
+    if (id === activeTab) return;
+    setTabLoading(true);
+    setTimeout(() => { setActiveTab(id); setTabLoading(false); }, 280);
+  };
   const [showChat, setShowChat] = useState(false);
   const [advisorData, setAdvisorData] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -647,7 +655,7 @@ const AdvisorDashboard = () => {
             const isActive = activeTab === item.id;
             const badge = item.id === 'solicitudes' && pendingSessions.length > 0 ? pendingSessions.length : null;
             return (
-              <button key={item.id} onClick={() => setActiveTab(item.id)}
+              <button key={item.id} onClick={() => switchTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative ${
                   isActive ? 'bg-[#0A0E27] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
                 } ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -691,7 +699,7 @@ const AdvisorDashboard = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
           <p className="font-bold text-gray-700 text-sm">
-            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : activeTab === 'verificacion' ? 'Verificación de Identidad' : activeTab === 'pagos' ? 'Datos de Cobro' : 'Perfil'}
+            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : activeTab === 'verificacion' ? 'Verificación de Identidad' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -781,7 +789,16 @@ const AdvisorDashboard = () => {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto relative">
+
+            {/* Tab loading spinner */}
+            {tabLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-[#0A0E27]/60 backdrop-blur-sm">
+                <div className="w-10 h-10 rounded-2xl bg-[#10B981]/20 flex items-center justify-center">
+                  <Loader2 size={20} className="text-[#10B981] animate-spin" />
+                </div>
+              </div>
+            )}
 
             {/* ── HOME ── */}
             {activeTab === 'inicio' && (
@@ -1294,6 +1311,32 @@ const AdvisorDashboard = () => {
 
             {/* ── PROFILE ── */}
             {activeTab === 'perfil' && (
+              <div className="p-6">
+                <AdvisorProfileFull
+                  userId={user?.id || ''}
+                  isDark={isDark}
+                  onProfileUpdated={() => fetchAll()}
+                />
+
+                {/* ── DATOS DE COBRO (dentro del perfil) ── */}
+                {advisorData?.id && (
+                  <div className="mt-8 max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-5 bg-emerald-500 rounded-full" />
+                      <h2 className={`text-base font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>Datos de Cobro</h2>
+                    </div>
+                    <AdvisorPayoutSetup
+                      userId={user?.id || ''}
+                      advisorId={advisorData.id}
+                      isDark={isDark}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── PERFIL LEGACY (oculto) ── */}
+            {activeTab === 'perfil_legacy_disabled' && (
               <div className="p-6 space-y-5">
                 <h1 className="text-2xl font-bold text-gray-800">Mi perfil público</h1>
 
@@ -1399,6 +1442,21 @@ const AdvisorDashboard = () => {
                     </div>
                   </form>
                 </div>
+
+                {/* ── DATOS DE COBRO (dentro del perfil) ── */}
+                {advisorData?.id && (
+                  <div className="mt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-5 bg-emerald-500 rounded-full" />
+                      <h2 className="text-base font-bold text-gray-800 dark:text-white">Datos de Cobro</h2>
+                    </div>
+                    <AdvisorPayoutSetup
+                      userId={user?.id || ''}
+                      advisorId={advisorData.id}
+                      isDark={isDark}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1413,14 +1471,10 @@ const AdvisorDashboard = () => {
               </div>
             )}
 
-            {/* ── DATOS DE COBRO ── */}
-            {activeTab === 'pagos' && advisorData?.id && (
+            {/* ── SOPORTE ── */}
+            {activeTab === 'soporte' && user?.id && (
               <div className="p-6">
-                <AdvisorPayoutSetup
-                  userId={user?.id || ''}
-                  advisorId={advisorData.id}
-                  isDark={isDark}
-                />
+                <SupportWidget userId={user.id} isDark={isDark} />
               </div>
             )}
 

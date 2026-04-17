@@ -118,7 +118,7 @@ export default function ClientProfileExpanded({ userId, isDark, onProfileUpdated
   );
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Mi Perfil</h2>
         <p className={`text-sm mt-1 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
@@ -155,9 +155,8 @@ export default function ClientProfileExpanded({ userId, isDark, onProfileUpdated
           Foto de Perfil
         </p>
         <AvatarUpload
-          userId={userId}
           currentUrl={avatarUrl}
-          onUpload={url => setAvatarUrl(url)}
+          onUploadComplete={(url: string) => setAvatarUrl(url)}
         />
       </div>
 

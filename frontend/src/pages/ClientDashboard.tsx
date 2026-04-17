@@ -6,7 +6,7 @@ import {
   TrendingUp, Users, DollarSign, Activity, ArrowUpRight,
   Paperclip, Smile, X, Plus,
   LayoutDashboard, User, LogOut, ChevronLeft, Shield,
-  XCircle, ExternalLink, AlertCircle, ChevronDown, Loader2, Moon, Sun
+  XCircle, ExternalLink, AlertCircle, ChevronDown, Loader2, Moon, Sun, Headphones
 } from 'lucide-react';
 import { useDarkMode } from '../context/DarkModeContext';
 import {
@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase';
 import AvatarUpload from '../components/AvatarUpload';
 import ClientProfileExpanded from '../components/ClientProfileExpanded';
 import LogoutScreen from '../components/LogoutScreen';
+import SupportWidget from '../components/SupportWidget';
 
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -699,6 +700,7 @@ const NAV_ITEMS = [
   { id: 'progreso', label: 'Progreso', icon: Activity },
   { id: 'explorar', label: 'Explorar', icon: Search },
   { id: 'mensajes', label: 'Mensajes', icon: MessageCircle },
+  { id: 'soporte', label: 'Soporte', icon: Headphones },
   { id: 'perfil', label: 'Perfil', icon: User },
 ];
 
@@ -707,6 +709,12 @@ const ClientDashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio');
+  const [tabLoading, setTabLoading] = useState(false);
+  const switchTab = (id: string) => {
+    if (id === activeTab) return;
+    setTabLoading(true);
+    setTimeout(() => { setActiveTab(id); setTabLoading(false); }, 280);
+  };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
   const [showChat, setShowChat] = useState(false);
@@ -1124,7 +1132,7 @@ const ClientDashboard = () => {
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
             return (
-              <button key={item.id} onClick={() => setActiveTab(item.id)}
+              <button key={item.id} onClick={() => switchTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative ${
                   isActive ? 'bg-[#0A0E27] text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
                 } ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -1165,7 +1173,7 @@ const ClientDashboard = () => {
         {/* TOPBAR */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
           <p className="font-bold text-gray-700 text-sm">
-            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'progreso' ? 'Progreso' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'explorar' ? 'Explorar' : activeTab === 'mensajes' ? 'Mensajes' : 'Perfil'}
+            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'progreso' ? 'Progreso' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'explorar' ? 'Explorar' : activeTab === 'mensajes' ? 'Mensajes' : activeTab === 'soporte' ? 'Soporte' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
             {/* Notificaciones */}
@@ -1260,7 +1268,16 @@ const ClientDashboard = () => {
 
         <div className="flex flex-1 overflow-hidden">
           {/* SCROLL AREA */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto relative">
+
+            {/* Tab loading spinner */}
+            {tabLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+                <div className="w-10 h-10 rounded-2xl bg-[#10B981]/20 flex items-center justify-center">
+                  <Loader2 size={20} className="text-[#10B981] animate-spin" />
+                </div>
+              </div>
+            )}
 
             {/* ── HOME ── */}
             {activeTab === 'inicio' && (
@@ -1666,6 +1683,13 @@ const ClientDashboard = () => {
             {/* ── MESSAGES TAB ── */}
             {activeTab === 'mensajes' && (
               <MessagesTab user={user} profile={profile} />
+            )}
+
+            {/* ── SOPORTE TAB ── */}
+            {activeTab === 'soporte' && user?.id && (
+              <div className="p-6">
+                <SupportWidget userId={user.id} isDark={isDark} />
+              </div>
             )}
 
             {/* ── PROFILE TAB ── */}

@@ -131,7 +131,7 @@ export default function AdvisorPayoutSetup({ userId, advisorId, isDark }: Props)
   );
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
           Datos de Cobro

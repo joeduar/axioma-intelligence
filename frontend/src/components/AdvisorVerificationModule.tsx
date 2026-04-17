@@ -301,7 +301,7 @@ export default function AdvisorVerificationModule({ userId, advisorId, isDark }:
           certificate_urls: certUrls,
           status: 'pending',
           submitted_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'advisor_id' });
 
       if (!error) {
         // Update advisor verification_status
@@ -338,7 +338,7 @@ export default function AdvisorVerificationModule({ userId, advisorId, isDark }:
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
       <div>
         <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>

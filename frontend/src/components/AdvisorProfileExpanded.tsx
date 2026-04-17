@@ -189,7 +189,7 @@ export default function AdvisorProfileExpanded({ userId, advisorId, isDark, onPr
       {/* Avatar */}
       <div className={`${card} p-6`}>
         <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? 'text-white/40' : 'text-gray-400'}`}>Foto de Perfil</p>
-        <AvatarUpload userId={userId} currentUrl={avatarUrl} onUpload={url => setAvatarUrl(url)} />
+        <AvatarUpload currentUrl={avatarUrl} onUploadComplete={(url: string) => setAvatarUrl(url)} />
       </div>
 
       {/* Personal */}
