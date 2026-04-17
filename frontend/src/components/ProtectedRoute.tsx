@@ -86,7 +86,7 @@ const EmailConfirmGate = ({ email }: { email: string }) => {
 // ─── PROTECTED ROUTE ──────────────────────────────────────
 interface Props {
   children: React.ReactNode;
-  role?: 'cliente' | 'asesor';
+  role?: 'cliente' | 'asesor' | 'admin';
 }
 
 const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
@@ -123,12 +123,24 @@ const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Admin role: check is_admin flag
+  if (role === 'admin') {
+    if (!profile?.is_admin) {
+      // Redirect to their dashboard if not admin
+      if (profile?.role === 'asesor') return <Navigate to="/dashboard/asesor" replace />;
+      return <Navigate to="/dashboard/cliente" replace />;
+    }
+    return <>{children}</>;
+  }
+
   // Bloquear asesores que no han confirmado su email
   if (role === 'asesor' && !user.email_confirmed_at) {
     return <EmailConfirmGate email={user.email || ''} />;
   }
 
   if (role && profile?.role !== role) {
+    // Admins can access any protected route
+    if (profile?.is_admin) return <>{children}</>;
     if (profile?.role === 'asesor') {
       return <Navigate to="/dashboard/asesor" replace />;
     }

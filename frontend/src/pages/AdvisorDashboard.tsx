@@ -17,6 +17,9 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import AvatarUpload from '../components/AvatarUpload';
 import LogoutScreen from '../components/LogoutScreen';
+import AdvisorVerificationModule from '../components/AdvisorVerificationModule';
+import AdvisorPayoutSetup from '../components/AdvisorPayoutSetup';
+import AdvisorProfileExpanded from '../components/AdvisorProfileExpanded';
 
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -390,12 +393,14 @@ const AdvisorMessagesTab = ({ user, profile, advisorId }: { user: any; profile: 
 
 // ── NAV ITEMS ─────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
-  { id: 'solicitudes', label: 'Solicitudes', icon: Bell },
-  { id: 'sesiones', label: 'Sesiones', icon: Calendar },
-  { id: 'ingresos', label: 'Ingresos', icon: DollarSign },
-  { id: 'mensajes', label: 'Mensajes', icon: MessageCircle },
-  { id: 'perfil', label: 'Perfil', icon: User },
+  { id: 'inicio',        label: 'Inicio',         icon: LayoutDashboard },
+  { id: 'solicitudes',   label: 'Solicitudes',    icon: Bell },
+  { id: 'sesiones',      label: 'Sesiones',       icon: Calendar },
+  { id: 'ingresos',      label: 'Ingresos',       icon: DollarSign },
+  { id: 'mensajes',      label: 'Mensajes',       icon: MessageCircle },
+  { id: 'perfil',        label: 'Perfil',         icon: User },
+  { id: 'verificacion',  label: 'Verificación',   icon: Shield },
+  { id: 'pagos',         label: 'Datos de Cobro', icon: ExternalLink },
 ];
 
 const CATEGORIES = ['Finanzas', 'Negocios', 'Datos & IA', 'Legal', 'Marketing', 'Tecnología', 'Recursos Humanos', 'Startups'];
@@ -686,7 +691,7 @@ const AdvisorDashboard = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
           <p className="font-bold text-gray-700 text-sm">
-            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : 'Perfil'}
+            {activeTab === 'inicio' ? 'Dashboard' : activeTab === 'solicitudes' ? 'Solicitudes' : activeTab === 'ingresos' ? 'Ingresos' : activeTab === 'sesiones' ? 'Sesiones' : activeTab === 'mensajes' ? 'Mensajes' : activeTab === 'verificacion' ? 'Verificación de Identidad' : activeTab === 'pagos' ? 'Datos de Cobro' : 'Perfil'}
           </p>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -1394,6 +1399,28 @@ const AdvisorDashboard = () => {
                     </div>
                   </form>
                 </div>
+              </div>
+            )}
+
+            {/* ── VERIFICACIÓN ── */}
+            {activeTab === 'verificacion' && advisorData?.id && (
+              <div className="p-6">
+                <AdvisorVerificationModule
+                  userId={user?.id || ''}
+                  advisorId={advisorData.id}
+                  isDark={isDark}
+                />
+              </div>
+            )}
+
+            {/* ── DATOS DE COBRO ── */}
+            {activeTab === 'pagos' && advisorData?.id && (
+              <div className="p-6">
+                <AdvisorPayoutSetup
+                  userId={user?.id || ''}
+                  advisorId={advisorData.id}
+                  isDark={isDark}
+                />
               </div>
             )}
 

@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import AvatarUpload from '../components/AvatarUpload';
+import ClientProfileExpanded from '../components/ClientProfileExpanded';
 import LogoutScreen from '../components/LogoutScreen';
 
 const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -1669,6 +1670,17 @@ const ClientDashboard = () => {
 
             {/* ── PROFILE TAB ── */}
             {activeTab === 'perfil' && (
+              <div className="p-6">
+                <ClientProfileExpanded
+                  userId={user?.id || ''}
+                  isDark={isDark}
+                  onProfileUpdated={() => {}}
+                />
+              </div>
+            )}
+
+            {/* ── PROFILE TAB LEGACY (hidden — kept for reference) ── */}
+            {activeTab === 'perfil_legacy_disabled' && (
               <div className="p-6 space-y-5">
                 <h1 className="text-2xl font-bold text-gray-800">Mi perfil</h1>
 
