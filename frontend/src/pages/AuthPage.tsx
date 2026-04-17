@@ -82,7 +82,7 @@ const LoginForm = ({ onSwitch }: { onSwitch: () => void }) => {
     setLoading(true);
     setError('');
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
       setError('No se pudo enviar el correo. Verifica el email e intenta de nuevo.');

@@ -23,6 +23,8 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentCancelledPage from './pages/PaymentCancelledPage';
 import AuthPage from './pages/AuthPage';
 import SessionActivePage from './pages/SessionActivePage';
+import AdminDashboard from './pages/AdminDashboard';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -129,6 +131,16 @@ const AnimatedRoutes = () => {
           <ProtectedRoute role="cliente">
             <CleanLayout><SessionActivePage /></CleanLayout>
           </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard/admin" element={
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reset-password" element={
+          <CleanLayout><ResetPasswordPage /></CleanLayout>
         } />
 
         <Route path="*" element={
