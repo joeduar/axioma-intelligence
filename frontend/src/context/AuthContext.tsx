@@ -6,6 +6,7 @@ interface AuthContextType {
     user: User | null;
     session: Session | null;
     profile: any | null;
+    teamMember: any | null;
     loading: boolean;
     signUp: (email: string, password: string, fullName: string, role: 'cliente' | 'asesor') => Promise<{ error: any }>;
     signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -20,15 +21,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<any | null>(null);
+    const [teamMember, setTeamMember] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchProfile = async (userId: string) => {
-        const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-        setProfile(data);
+        const [{ data: profileData }, { data: teamData }] = await Promise.all([
+            supabase.from('profiles').select('*').eq('id', userId).single(),
+            supabase.from('team_members').select('*').eq('user_id', userId).eq('is_active', true).maybeSingle(),
+        ]);
+        setProfile(profileData);
+        setTeamMember(teamData ?? null);
     };
 
     useEffect(() => {
@@ -46,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchProfile(session.user.id);
             } else {
                 setProfile(null);
+                setTeamMember(null);
             }
             setLoading(false);
         });
@@ -80,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, session, profile, teamMember, loading, signUp, signIn, signOut }}>
             {children}
         </AuthContext.Provider>
     );

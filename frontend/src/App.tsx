@@ -25,6 +25,7 @@ import AuthPage from './pages/AuthPage';
 import SessionActivePage from './pages/SessionActivePage';
 import AdminDashboard from './pages/AdminDashboard';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import StaffPortal from './pages/StaffPortal';
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -141,6 +142,10 @@ const AnimatedRoutes = () => {
 
         <Route path="/reset-password" element={
           <CleanLayout><ResetPasswordPage /></CleanLayout>
+        } />
+
+        <Route path="/staff" element={
+          <CleanLayout><StaffPortal /></CleanLayout>
         } />
 
         <Route path="*" element={

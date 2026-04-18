@@ -90,7 +90,7 @@ interface Props {
 }
 
 const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, teamMember, loading } = useAuth();
 
   if (loading) {
     return (
@@ -135,14 +135,14 @@ const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
     );
   }
 
-  // Admin role: check is_admin flag
+  // Admin role: allow super-admins AND active team members
   if (role === 'admin') {
-    if (!profile?.is_admin) {
-      // Redirect to their dashboard if not admin
-      if (profile?.role === 'asesor') return <Navigate to="/dashboard/asesor" replace />;
-      return <Navigate to="/dashboard/cliente" replace />;
+    if (profile?.is_admin || teamMember?.is_active) {
+      return <>{children}</>;
     }
-    return <>{children}</>;
+    // Not admin or team member - redirect to their own dashboard
+    if (profile?.role === 'asesor') return <Navigate to="/dashboard/asesor" replace />;
+    return <Navigate to="/dashboard/cliente" replace />;
   }
 
   // Bloquear asesores que no han confirmado su email

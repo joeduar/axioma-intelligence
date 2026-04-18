@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,6 +20,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useDarkMode } from '../context/DarkModeContext';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 // ─── TYPES ──────────────────────────────────────────────────
 interface Stats {
@@ -89,7 +93,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     activa: { label: 'Activa', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
     pendiente: { label: 'Pendiente', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
   };
-  const s = map[status] || { label: status, cls: 'bg-gray-100 text-gray-500' };
+  const s = map[status] || { label: status, cls: 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/50' };
   return (
     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${s.cls}`}>
       {s.label}
@@ -175,10 +179,7 @@ const VerificationModal = ({ req, onClose, onDecision }: {
                 <p className="text-xs text-gray-400 mb-2">Certificados adicionales:</p>
                 <div className="flex flex-wrap gap-2">
                   {req.certificate_urls.map((cert: any, i: number) => (
-                    <a key={i} href={cert.url} target="_blank" rel="noreferrer"
-                      className="text-xs bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all">
-                      {cert.name || `Certificado ${i + 1}`}
-                    </a>
+                    <DocLink key={i} label={cert.name || `Certificado ${i + 1}`} url={cert.url} bucket="certifications" />
                   ))}
                 </div>
               </div>
@@ -442,26 +443,46 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const DocLink = ({ label, url }: { label: string; url?: string }) => (
-  <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 flex items-center justify-between">
-    <div>
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="text-xs font-medium text-gray-600 dark:text-white/60 mt-0.5">
-        {url ? 'Adjunto' : 'No enviado'}
-      </p>
-    </div>
-    {url ? (
-      <a href={url} target="_blank" rel="noreferrer"
-        className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all">
-        <Eye size={13} className="text-blue-500" />
-      </a>
-    ) : (
-      <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-        <X size={13} className="text-gray-300 dark:text-white/20" />
+const DocLink = ({ label, url, bucket = 'verification-docs' }: { label: string; url?: string; bucket?: string }) => {
+  const [loading, setLoading] = React.useState(false);
+
+  const handleView = async () => {
+    if (!url) return;
+    setLoading(true);
+    // Extract storage path from the full URL
+    const marker = `/${bucket}/`;
+    if (url.includes(marker)) {
+      const filePath = url.split(marker)[1].split('?')[0];
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 3600);
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    } else {
+      // Already a signed/direct URL
+      window.open(url, '_blank');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 flex items-center justify-between">
+      <div>
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-xs font-medium text-gray-600 dark:text-white/60 mt-0.5">
+          {url ? 'Adjunto' : 'No enviado'}
+        </p>
       </div>
-    )}
-  </div>
-);
+      {url ? (
+        <button onClick={handleView} disabled={loading}
+          className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all disabled:opacity-50">
+          {loading ? <Loader2 size={13} className="text-blue-500 animate-spin" /> : <Eye size={13} className="text-blue-500" />}
+        </button>
+      ) : (
+        <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+          <X size={13} className="text-gray-300 dark:text-white/20" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── CUSTOM TOOLTIP ─────────────────────────────────────────
 const ChartTooltip = ({ active, payload, label }: any) => {
@@ -525,6 +546,13 @@ export default function AdminDashboard() {
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
 
+  // Create new team user
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ fullName: '', email: '', password: '', teamRole: 'empleado' });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState('');
+  const [createUserSuccess, setCreateUserSuccess] = useState('');
+
   // Support
   const [tickets, setTickets] = useState<any[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
@@ -557,7 +585,7 @@ export default function AdminDashboard() {
       supabase.removeChannel(teamChannel);
       supabase.removeChannel(ticketsChannel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadAll = async () => {
@@ -811,13 +839,46 @@ export default function AdminDashboard() {
       invited_by: profile?.id,
     });
     if (error) {
-      setInviteError('Error al agregar miembro. ¿Ya es parte del equipo?');
+      setInviteError(error.code === '23505' ? 'Este usuario ya es parte del equipo.' : `Error: ${error.message}`);
     } else {
       setShowInviteModal(false);
       setInviteForm({ email: '', team_role: 'empleado', notes: '' });
       loadTeamMembers();
     }
     setInviting(false);
+  };
+
+  const handleCreateTeamUser = async () => {
+    setCreatingUser(true);
+    setCreateUserError('');
+    setCreateUserSuccess('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${BACKEND_URL}/api/admin/create-team-member`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: JSON.stringify({
+          email: createUserForm.email.trim(),
+          password: createUserForm.password,
+          fullName: createUserForm.fullName.trim(),
+          teamRole: createUserForm.teamRole,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCreateUserError(data.error || 'Error al crear la cuenta.');
+      } else {
+        setCreateUserSuccess(data.message);
+        setCreateUserForm({ fullName: '', email: '', password: '', teamRole: 'empleado' });
+        loadTeamMembers();
+      }
+    } catch {
+      setCreateUserError('No se pudo conectar con el servidor. Asegúrate de que el backend esté corriendo.');
+    }
+    setCreatingUser(false);
   };
 
   const handleToggleTeamMember = async (memberId: string, current: boolean) => {
@@ -926,8 +987,8 @@ export default function AdminDashboard() {
               key={tab.id}
               onClick={() => switchTab(tab.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id
-                  ? 'bg-emerald-500 text-white'
-                  : 'text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+                ? 'bg-emerald-500 text-white'
+                : 'text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
                 }`}
             >
               <tab.icon size={16} />
@@ -988,7 +1049,7 @@ export default function AdminDashboard() {
 
           {/* Tab switching spinner */}
           {tabLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-[#0A0E27]/60 backdrop-blur-sm rounded-xl">
+            <div className={`absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm rounded-xl ${isDark ? 'bg-[#0A0E27]/80' : 'bg-gray-50/80'}`}>
               <div className="flex flex-col items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
                   <Loader2 size={20} className="text-emerald-500 animate-spin" />
@@ -1237,8 +1298,8 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-4">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${u.role === 'asesor'
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                              : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
                             }`}>
                             {u.role === 'asesor' ? 'Asesor' : 'Cliente'}
                           </span>
@@ -1268,8 +1329,8 @@ export default function AdminDashboard() {
                         <td className="px-4 py-4">
                           <button onClick={e => { e.stopPropagation(); toggleAdmin(u.id, u.is_admin); }}
                             className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${u.is_admin
-                                ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30'
-                                : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-white/40 hover:bg-gray-200 dark:hover:bg-white/10'
+                              ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-500/30'
+                              : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-white/40 hover:bg-gray-200 dark:hover:bg-white/10'
                               }`}>
                             {u.is_admin ? 'Admin ✓' : 'Hacer Admin'}
                           </button>
@@ -1410,10 +1471,16 @@ export default function AdminDashboard() {
                   <h2 className="text-sm font-bold text-gray-900 dark:text-white">Gestión del Equipo</h2>
                   <p className="text-xs text-gray-400 mt-0.5">Administra los miembros internos y sus permisos</p>
                 </div>
-                <button onClick={() => setShowInviteModal(true)}
-                  className="flex items-center gap-2 bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-emerald-600 transition-all">
-                  <UserPlus size={14} /> Agregar miembro
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowInviteModal(true)}
+                    className="flex items-center gap-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
+                    <UserPlus size={14} /> Agregar existente
+                  </button>
+                  <button onClick={() => { setShowCreateUserModal(true); setCreateUserError(''); setCreateUserSuccess(''); }}
+                    className="flex items-center gap-2 bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-600 transition-all">
+                    <UserPlus size={14} /> Crear usuario
+                  </button>
+                </div>
               </div>
 
               {/* Role legend */}
@@ -1467,7 +1534,7 @@ export default function AdminDashboard() {
                               onChange={e => handleUpdateTeamRole(m.id, e.target.value)}
                               className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"
                             >
-                              {['admin','supervisor','operador','soporte','empleado'].map(r => (
+                              {['admin', 'supervisor', 'operador', 'soporte', 'empleado'].map(r => (
                                 <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
                               ))}
                             </select>
@@ -1528,7 +1595,7 @@ export default function AdminDashboard() {
               {/* Ticket list */}
               <div className="w-80 shrink-0 flex flex-col gap-3">
                 <div className="flex gap-2">
-                  {['abierto','en_revision','respondido','cerrado'].map(s => (
+                  {['abierto', 'en_revision', 'respondido', 'cerrado'].map(s => (
                     <button key={s} onClick={() => setTicketFilter(s)}
                       className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${ticketFilter === s ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/40 hover:border-gray-300'}`}>
                       {s === 'abierto' ? 'Abiertos' : s === 'en_revision' ? 'En revisión' : s === 'respondido' ? 'Respondidos' : 'Cerrados'}
@@ -1549,11 +1616,10 @@ export default function AdminDashboard() {
                           <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{t.subject}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{t.profiles?.full_name} · {t.profiles?.role}</p>
                           <div className="flex items-center gap-2 mt-1.5">
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                              t.priority === 'urgente' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' :
-                              t.priority === 'alta' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-                              'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/40'
-                            }`}>{t.priority}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${t.priority === 'urgente' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' :
+                                t.priority === 'alta' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
+                                  'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/40'
+                              }`}>{t.priority}</span>
                             <span className="text-[9px] text-gray-400">{t.category}</span>
                           </div>
                         </div>
@@ -1737,7 +1803,7 @@ export default function AdminDashboard() {
                   onChange={e => setInviteForm(p => ({ ...p, team_role: e.target.value }))}
                   className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"
                 >
-                  {['admin','supervisor','operador','soporte','empleado'].map(r => (
+                  {['admin', 'supervisor', 'operador', 'soporte', 'empleado'].map(r => (
                     <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
                   ))}
                 </select>
@@ -1762,6 +1828,82 @@ export default function AdminDashboard() {
                 {inviting ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
                 Agregar al equipo
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Team User Modal */}
+      {showCreateUserModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0f1629] border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10">
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">Crear nueva cuenta de usuario</h2>
+              <button onClick={() => { setShowCreateUserModal(false); setCreateUserError(''); setCreateUserSuccess(''); }}
+                className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/20 transition-all">
+                <X size={15} className="text-gray-500 dark:text-white/60" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {createUserSuccess ? (
+                <div className="text-center py-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle size={22} className="text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">¡Cuenta creada exitosamente!</p>
+                  <p className="text-xs text-gray-400 mt-1">{createUserSuccess}</p>
+                  <button onClick={() => { setCreateUserSuccess(''); setShowCreateUserModal(false); }}
+                    className="mt-4 text-xs text-emerald-500 hover:text-emerald-600 transition-colors">Cerrar</button>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Nombre completo *</label>
+                    <input value={createUserForm.fullName} onChange={e => setCreateUserForm(p => ({ ...p, fullName: e.target.value }))}
+                      placeholder="Juan Pérez"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/20 focus:outline-none focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Correo electrónico *</label>
+                    <input type="email" value={createUserForm.email} onChange={e => setCreateUserForm(p => ({ ...p, email: e.target.value }))}
+                      placeholder="usuario@empresa.com"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/20 focus:outline-none focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Contraseña temporal *</label>
+                    <input type="password" value={createUserForm.password} onChange={e => setCreateUserForm(p => ({ ...p, password: e.target.value }))}
+                      placeholder="Mínimo 8 caracteres"
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/20 focus:outline-none focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Rol en el equipo</label>
+                    <select value={createUserForm.teamRole} onChange={e => setCreateUserForm(p => ({ ...p, teamRole: e.target.value }))}
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                      {[
+                        { v: 'admin', l: 'Administrador' },
+                        { v: 'supervisor', l: 'Supervisor' },
+                        { v: 'operador', l: 'Operador' },
+                        { v: 'soporte', l: 'Soporte' },
+                        { v: 'empleado', l: 'Empleado' },
+                      ].map(r => <option key={r.v} value={r.v} className="bg-white dark:bg-[#0f1629]">{r.l}</option>)}
+                    </select>
+                  </div>
+                  {createUserError && (
+                    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-4 py-3">
+                      <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                      <p className="text-xs text-red-500 dark:text-red-400">{createUserError}</p>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-400 dark:text-white/30">La cuenta se activa inmediatamente. El usuario podrá ingresar con estas credenciales.</p>
+                  <button
+                    onClick={handleCreateTeamUser}
+                    disabled={creatingUser || !createUserForm.fullName.trim() || !createUserForm.email.trim() || !createUserForm.password}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm hover:bg-emerald-600 transition-all disabled:opacity-60">
+                    {creatingUser ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
+                    {creatingUser ? 'Creando cuenta...' : 'Crear usuario'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
