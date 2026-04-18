@@ -1,13 +1,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- 005_team_member_read_access.sql
--- Grants active team members read access to all admin dashboard data.
--- They can SEE everything an admin sees; write access is controlled per table.
+-- 005_team_member_read_access.sql  (rewritten — safe version)
+-- Grants active team members READ access to all admin dashboard data.
+-- Does NOT touch existing user-specific or admin-write policies from 001/002.
 -- Run in Supabase Dashboard > SQL Editor
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── 1. HELPER FUNCTION ───────────────────────────────────────────────────────
--- Returns true if the current user is a super admin OR an active team member.
--- Used in all policies below to avoid repeating the same subquery.
 CREATE OR REPLACE FUNCTION is_admin_or_staff()
 RETURNS boolean
 LANGUAGE sql
@@ -22,77 +20,54 @@ AS $$
 $$;
 
 -- ── 2. PROFILES ──────────────────────────────────────────────────────────────
--- Drop the old admin-only policy and replace it with one that includes staff.
+-- The old policy only allowed own profile OR is_admin. Recreate to include staff.
 DROP POLICY IF EXISTS "admin_read_all_profiles" ON profiles;
 CREATE POLICY "admin_read_all_profiles" ON profiles
   FOR SELECT USING (
-    id = auth.uid()       -- users can always read their own profile
+    id = auth.uid()
     OR is_admin_or_staff()
   );
 
 -- ── 3. ADVISOR_VERIFICATION ──────────────────────────────────────────────────
-ALTER TABLE advisor_verification ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "staff_read_all_verifications" ON advisor_verification;
-CREATE POLICY "staff_read_all_verifications" ON advisor_verification
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR advisor_id = auth.uid()
-    OR is_admin_or_staff()
-  );
+-- Existing: "advisor_own_verification" (own) + "admin_all_verifications" (admin write)
+-- New: staff can SELECT all
+DROP POLICY IF EXISTS "staff_read_verifications" ON advisor_verification;
+CREATE POLICY "staff_read_verifications" ON advisor_verification
+  FOR SELECT USING (is_admin_or_staff());
 
 -- ── 4. SESSIONS ──────────────────────────────────────────────────────────────
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "staff_read_all_sessions" ON sessions;
-CREATE POLICY "staff_read_all_sessions" ON sessions
-  FOR SELECT USING (
-    client_id = auth.uid()
-    OR advisor_id = auth.uid()
-    OR is_admin_or_staff()
-  );
+-- No column assumptions — just staff SELECT bypass
+DROP POLICY IF EXISTS "staff_read_sessions" ON sessions;
+CREATE POLICY "staff_read_sessions" ON sessions
+  FOR SELECT USING (is_admin_or_staff());
 
 -- ── 5. PAYMENTS ──────────────────────────────────────────────────────────────
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "staff_read_all_payments" ON payments;
-CREATE POLICY "staff_read_all_payments" ON payments
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR is_admin_or_staff()
-  );
+DROP POLICY IF EXISTS "staff_read_payments" ON payments;
+CREATE POLICY "staff_read_payments" ON payments
+  FOR SELECT USING (is_admin_or_staff());
 
 -- ── 6. PAYOUTS ───────────────────────────────────────────────────────────────
-ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "staff_read_all_payouts" ON payouts;
-CREATE POLICY "staff_read_all_payouts" ON payouts
-  FOR SELECT USING (
-    user_id = auth.uid()
-    OR is_admin_or_staff()
-  );
+-- Existing: "advisor_view_own_payouts" + "admin_manage_payouts"
+-- New: all staff can SELECT
+DROP POLICY IF EXISTS "staff_read_payouts" ON payouts;
+CREATE POLICY "staff_read_payouts" ON payouts
+  FOR SELECT USING (is_admin_or_staff());
 
--- ── 7. ADVISORS ──────────────────────────────────────────────────────────────
--- Advisors table is usually public-read; make sure staff can also read all.
-ALTER TABLE advisors ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "public_read_advisors" ON advisors;
-DROP POLICY IF EXISTS "staff_read_all_advisors" ON advisors;
-CREATE POLICY "public_read_advisors" ON advisors
-  FOR SELECT USING (TRUE);  -- advisor cards are public; staff reads everything anyway
-
--- ── 8. PLATFORM_SETTINGS ─────────────────────────────────────────────────────
-ALTER TABLE platform_settings ENABLE ROW LEVEL SECURITY;
+-- ── 7. PLATFORM_SETTINGS ─────────────────────────────────────────────────────
+-- Existing: "admin_settings" FOR ALL (admin write stays)
+-- New: staff can read; safe to have both policies — most permissive SELECT wins
 DROP POLICY IF EXISTS "staff_read_settings" ON platform_settings;
 CREATE POLICY "staff_read_settings" ON platform_settings
   FOR SELECT USING (is_admin_or_staff());
 
-DROP POLICY IF EXISTS "admin_write_settings" ON platform_settings;
-CREATE POLICY "admin_write_settings" ON platform_settings
-  FOR ALL USING (is_admin_user());
-
--- ── 9. NOTIFICATIONS ─────────────────────────────────────────────────────────
--- Notifications are user-specific; no change needed for staff.
--- Staff sends notifications via the admin action handlers already.
+-- ── 8. ADVISORS ──────────────────────────────────────────────────────────────
+-- Advisors are typically public-readable; this ensures staff can always read
+DROP POLICY IF EXISTS "staff_read_advisors" ON advisors;
+CREATE POLICY "staff_read_advisors" ON advisors
+  FOR SELECT USING (TRUE);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- DONE
--- After running this, any active team member (supervisor, operador, etc.)
--- will be able to see all dashboard data via the Supabase anon client.
--- Write permissions remain controlled by separate policies.
+-- DONE. Verify with:
+--   SELECT policyname, tablename FROM pg_policies
+--   WHERE policyname LIKE 'staff_%' OR policyname = 'admin_read_all_profiles';
 -- ─────────────────────────────────────────────────────────────────────────────
