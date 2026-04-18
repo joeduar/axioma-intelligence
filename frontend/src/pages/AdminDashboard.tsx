@@ -1023,7 +1023,9 @@ export default function AdminDashboard() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{profile?.full_name || 'Admin'}</p>
-              <p className="text-[10px] text-emerald-500 font-medium">Administrador</p>
+              <p className="text-[10px] text-emerald-500 font-medium capitalize">
+                {isMainAdmin ? 'Administrador' : (teamMember?.team_role || 'Equipo')}
+              </p>
             </div>
           </div>
           <button onClick={toggle}
