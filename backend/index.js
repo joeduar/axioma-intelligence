@@ -111,12 +111,13 @@ app.post('/api/admin/create-team-member', async (req, res) => {
 
     const userId = authData.user.id;
 
-    // 2. Upsert profile (trigger may already create it, this ensures correctness)
+    // 2. Upsert profile — mark as staff so they don't appear in client/advisor lists
     await supabaseAdmin.from('profiles').upsert({
       id: userId,
       full_name: fullName,
       email: email,
-      role: 'cliente', // base role — actual access controlled by team_members
+      role: 'cliente',   // satisfies CHECK constraint; real access via team_members
+      is_staff: true,    // excludes from public user listings
     }, { onConflict: 'id' });
 
     // 3. Add to team_members
@@ -171,12 +172,21 @@ app.get('/api/admin/team-members', async (req, res) => {
   }
 
   try {
+    // Join using column name hint (two FKs exist: user_id and invited_by → profiles)
     const { data, error } = await supabaseAdmin
       .from('team_members')
-      .select('*, profiles!team_members_user_id_fkey(full_name, email, avatar_url, role)')
+      .select('id, user_id, team_role, permissions, is_active, notes, created_at, updated_at, invited_by, profiles!user_id(full_name, email, avatar_url, role)')
       .order('created_at', { ascending: false });
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error) {
+      console.error('[team-members] join error:', error.message);
+      // Fallback: return team members without profile join
+      const { data: fallback } = await supabaseAdmin
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: false });
+      return res.json({ members: fallback || [], warning: 'profiles join failed: ' + error.message });
+    }
     res.json({ members: data || [] });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Error interno.' });
@@ -253,7 +263,10 @@ app.post('/api/admin/add-existing-to-team', async (req, res) => {
       return res.status(409).json({ error: 'Este usuario ya es parte del equipo.' });
     }
 
-    // 3. Insert into team_members
+    // 3. Mark profile as staff so they don't appear in client/advisor lists
+    await supabaseAdmin.from('profiles').update({ is_staff: true }).eq('id', profile.id);
+
+    // 4. Insert into team_members
     const { error: insertError } = await supabaseAdmin.from('team_members').insert({
       user_id: profile.id,
       team_role: role,
@@ -263,6 +276,8 @@ app.post('/api/admin/add-existing-to-team', async (req, res) => {
     });
 
     if (insertError) {
+      // Rollback the is_staff flag
+      await supabaseAdmin.from('profiles').update({ is_staff: false }).eq('id', profile.id);
       return res.status(400).json({ error: `Error al agregar al equipo: ${insertError.message}` });
     }
 

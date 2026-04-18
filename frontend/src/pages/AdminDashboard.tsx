@@ -542,6 +542,7 @@ export default function AdminDashboard() {
 
   // Team
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamLoadError, setTeamLoadError] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', team_role: 'empleado', notes: '' });
   const [inviting, setInviting] = useState(false);
@@ -615,9 +616,9 @@ export default function AdminDashboard() {
       { count: activeSessions },
       { count: pendingVerif },
     ] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'cliente'),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'asesor'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('is_staff', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'cliente').neq('is_staff', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'asesor').neq('is_staff', true),
       supabase.from('payments').select('amount, created_at').eq('status', 'completado'),
       supabase.from('sessions').select('*', { count: 'exact', head: true }),
       supabase.from('sessions').select('*', { count: 'exact', head: true }).in('status', ['pendiente', 'confirmada']),
@@ -656,6 +657,7 @@ export default function AdminDashboard() {
     const { data } = await supabase
       .from('profiles')
       .select('*, advisors(verified, verification_status, rating, available)')
+      .neq('is_staff', true)
       .order('created_at', { ascending: false });
     setUsers(data || []);
   };
@@ -721,16 +723,19 @@ export default function AdminDashboard() {
   };
 
   const loadTeamMembers = async () => {
+    setTeamLoadError('');
     try {
       const res = await fetch(`${BACKEND_URL}/api/admin/team-members`, {
         headers: { 'Authorization': `Bearer ${session?.access_token}` },
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setTeamMembers(data.members || []);
+      } else {
+        setTeamLoadError(data.error || `Error ${res.status} cargando equipo`);
       }
     } catch {
-      // backend not running locally — silently skip
+      setTeamLoadError(`No se pudo conectar con el backend (${BACKEND_URL}). Asegúrate de que el servidor esté corriendo.`);
     }
   };
 
@@ -1571,7 +1576,20 @@ export default function AdminDashboard() {
                         </tr>
                       );
                     })}
-                    {teamMembers.length === 0 && (
+                    {teamLoadError && (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8">
+                          <div className="inline-flex items-start gap-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-5 py-4 text-left max-w-lg mx-auto">
+                            <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-600 dark:text-red-400">Error cargando equipo</p>
+                              <p className="text-xs text-red-500/80 dark:text-red-400/70 mt-1">{teamLoadError}</p>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {!teamLoadError && teamMembers.length === 0 && (
                       <tr>
                         <td colSpan={5} className="text-center py-12 text-sm text-gray-400">
                           Aún no hay miembros en el equipo
