@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -505,9 +502,13 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 // MAIN ADMIN DASHBOARD
 // ═══════════════════════════════════════════════════════════════
 export default function AdminDashboard() {
-  const { profile, signOut } = useAuth();
+  const { profile, teamMember, session, signOut } = useAuth();
   const { isDark, toggle } = useDarkMode();
   const navigate = useNavigate();
+
+  // Admins principales tienen acceso total; team members solo lo que su rol permite
+  const isMainAdmin = profile?.is_admin === true;
+  const can = (perm: string): boolean => isMainAdmin || teamMember?.permissions?.[perm] === true;
 
   const [activeTab, setActiveTab] = useState('overview');
   const [tabLoading, setTabLoading] = useState(false);
@@ -820,30 +821,29 @@ export default function AdminDashboard() {
   const handleInviteTeamMember = async () => {
     setInviting(true);
     setInviteError('');
-    // Find user by email
-    const { data: found } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', inviteForm.email.trim())
-      .maybeSingle();
-    if (!found) {
-      setInviteError('No se encontró un usuario con ese email. Debe registrarse primero.');
-      setInviting(false);
-      return;
-    }
-    const { error } = await supabase.from('team_members').insert({
-      user_id: found.id,
-      team_role: inviteForm.team_role,
-      permissions: ROLE_PRESETS[inviteForm.team_role] || ROLE_PRESETS['empleado'],
-      notes: inviteForm.notes || null,
-      invited_by: profile?.id,
-    });
-    if (error) {
-      setInviteError(error.code === '23505' ? 'Este usuario ya es parte del equipo.' : `Error: ${error.message}`);
-    } else {
-      setShowInviteModal(false);
-      setInviteForm({ email: '', team_role: 'empleado', notes: '' });
-      loadTeamMembers();
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/add-existing-to-team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          email: inviteForm.email.trim(),
+          teamRole: inviteForm.team_role,
+          notes: inviteForm.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInviteError(data.error || 'Error al agregar al equipo.');
+      } else {
+        setShowInviteModal(false);
+        setInviteForm({ email: '', team_role: 'empleado', notes: '' });
+        loadTeamMembers();
+      }
+    } catch {
+      setInviteError('No se pudo conectar con el servidor. Verifica que el backend esté activo.');
     }
     setInviting(false);
   };
@@ -940,15 +940,15 @@ export default function AdminDashboard() {
   });
 
   const tabs = [
-    { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
-    { id: 'verifications', label: 'Verificaciones', icon: ShieldCheck, badge: stats.pendingVerifications },
-    { id: 'users', label: 'Usuarios', icon: Users },
-    { id: 'sessions', label: 'Sesiones', icon: Calendar },
-    { id: 'payouts', label: 'Pagos', icon: Banknote },
-    { id: 'team', label: 'Equipo', icon: UserPlus },
-    { id: 'support', label: 'Soporte', icon: Headphones, badge: tickets.filter(t => t.status === 'abierto').length || undefined },
-    { id: 'settings', label: 'Configuración', icon: Settings },
-  ];
+    { id: 'overview',       label: 'Resumen',          icon: LayoutDashboard, show: true },
+    { id: 'verifications',  label: 'Verificaciones',   icon: ShieldCheck,     show: can('ver_verificaciones'), badge: stats.pendingVerifications },
+    { id: 'users',          label: 'Usuarios',         icon: Users,           show: can('ver_usuarios') },
+    { id: 'sessions',       label: 'Sesiones',         icon: Calendar,        show: can('ver_sesiones') },
+    { id: 'payouts',        label: 'Pagos',            icon: Banknote,        show: can('ver_pagos') },
+    { id: 'team',           label: 'Equipo',           icon: UserPlus,        show: can('gestionar_equipo') },
+    { id: 'support',        label: 'Soporte',          icon: Headphones,      show: can('ver_soporte'), badge: tickets.filter(t => t.status === 'abierto').length || undefined },
+    { id: 'settings',       label: 'Configuración',    icon: Settings,        show: can('configurar_plataforma') },
+  ].filter(t => t.show);
 
   if (loading) {
     return (
@@ -1617,8 +1617,8 @@ export default function AdminDashboard() {
                           <p className="text-[10px] text-gray-400 mt-0.5">{t.profiles?.full_name} · {t.profiles?.role}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${t.priority === 'urgente' ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' :
-                                t.priority === 'alta' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-                                  'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/40'
+                              t.priority === 'alta' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
+                                'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/40'
                               }`}>{t.priority}</span>
                             <span className="text-[9px] text-gray-400">{t.category}</span>
                           </div>

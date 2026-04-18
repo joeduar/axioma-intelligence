@@ -71,9 +71,22 @@ const LoginForm = ({ onSwitch }: { onSwitch: () => void }) => {
     }
     // Mostrar overlay de "Iniciando sesión" antes de navegar
     setSigningIn(true);
-    const { data } = await supabase.from('profiles').select('role').eq('email', email).single();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const [{ data: prof }, { data: tm }] = await Promise.all([
+      supabase.from('profiles').select('role, is_admin').eq('email', email).single(),
+      supabase.from('team_members')
+        .select('id, is_active')
+        .eq('user_id', authUser?.id || '')
+        .eq('is_active', true)
+        .maybeSingle(),
+    ]);
     setTimeout(() => {
-      navigate(data?.role === 'asesor' ? '/dashboard/asesor' : '/dashboard/cliente');
+      // Team members y admins van siempre al panel backend
+      if (prof?.is_admin || tm?.is_active) {
+        navigate('/dashboard/admin');
+      } else {
+        navigate(prof?.role === 'asesor' ? '/dashboard/asesor' : '/dashboard/cliente');
+      }
     }, 1600);
   };
 

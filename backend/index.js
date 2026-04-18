@@ -14,7 +14,11 @@ const supabaseAdmin = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_R
   : null;
 
 // ── Middleware ──────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 // ── Permission presets (mirrors frontend ROLE_PRESETS) ───────────
@@ -56,11 +60,23 @@ app.post('/api/admin/create-team-member', async (req, res) => {
   let isAdminVerified = false;
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ') && supabaseAdmin) {
-    const token = authHeader.slice(7);
-    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-    if (user) {
-      const { data: prof } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', user.id).single();
-      isAdminVerified = prof?.is_admin === true;
+    try {
+      const token = authHeader.slice(7);
+      const { data: userData, error: jwtError } = await supabaseAdmin.auth.getUser(token);
+      if (jwtError) {
+        console.warn('[JWT] Error verificando token:', jwtError.message);
+      } else if (userData?.user?.id) {
+        const userId = userData.user.id;
+        // Check is_admin on profiles OR active team_members record
+        const [{ data: prof }, { data: tm }] = await Promise.all([
+          supabaseAdmin.from('profiles').select('is_admin').eq('id', userId).single(),
+          supabaseAdmin.from('team_members').select('id').eq('user_id', userId).eq('is_active', true).maybeSingle(),
+        ]);
+        isAdminVerified = prof?.is_admin === true || !!tm?.id;
+        console.log('[JWT] is_admin:', prof?.is_admin, '| team_member:', !!tm?.id, '| verified:', isAdminVerified);
+      }
+    } catch (e) {
+      console.error('[JWT] Excepción al verificar token:', e.message);
     }
   }
 
@@ -87,7 +103,8 @@ app.post('/api/admin/create-team-member', async (req, res) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName, role: 'staff' },
+      // role: 'cliente' para que el trigger de profiles no falle (la membresía real está en team_members)
+      user_metadata: { full_name: fullName, role: 'cliente' },
     });
 
     if (authError) return res.status(400).json({ error: authError.message });
@@ -116,6 +133,100 @@ app.post('/api/admin/create-team-member', async (req, res) => {
     }
 
     res.json({ success: true, message: `Cuenta de ${fullName} creada exitosamente. Ya puede ingresar con su correo y contraseña.` });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Error interno del servidor.' });
+  }
+});
+
+// ── ADD EXISTING USER TO TEAM ────────────────────────────────────
+// POST /api/admin/add-existing-to-team
+// Body: { email, teamRole, notes? }
+// Protected by admin JWT in Authorization header
+app.post('/api/admin/add-existing-to-team', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Backend no configurado.' });
+  }
+
+  // Verify admin JWT
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token de autorización requerido.' });
+  }
+
+  let isAuthorized = false;
+  let invitedByUserId = null;
+  try {
+    const token = authHeader.slice(7);
+    const { data: userData, error: jwtError } = await supabaseAdmin.auth.getUser(token);
+    if (jwtError || !userData?.user?.id) {
+      return res.status(401).json({ error: 'Token inválido.' });
+    }
+    const callerId = userData.user.id;
+    const [{ data: prof }, { data: tm }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('is_admin').eq('id', callerId).single(),
+      supabaseAdmin.from('team_members').select('id, permissions').eq('user_id', callerId).eq('is_active', true).maybeSingle(),
+    ]);
+    isAuthorized = prof?.is_admin === true || (!!tm?.id && tm?.permissions?.gestionar_equipo === true);
+    invitedByUserId = callerId;
+  } catch (e) {
+    return res.status(401).json({ error: 'Error verificando autorización.' });
+  }
+
+  if (!isAuthorized) {
+    return res.status(403).json({ error: 'No tienes permisos para gestionar el equipo.' });
+  }
+
+  const { email, teamRole, notes } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email requerido.' });
+
+  const role = teamRole || 'empleado';
+  const permissions = ROLE_PRESETS[role] || ROLE_PRESETS['empleado'];
+
+  try {
+    // 1. Find user by email in profiles (service role bypasses RLS)
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
+
+    if (profileError) {
+      return res.status(400).json({ error: `Error buscando usuario: ${profileError.message}` });
+    }
+    if (!profile) {
+      return res.status(404).json({ error: 'No se encontró ningún usuario con ese correo electrónico.' });
+    }
+
+    // 2. Check if already a team member
+    const { data: existing } = await supabaseAdmin
+      .from('team_members')
+      .select('id')
+      .eq('user_id', profile.id)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({ error: 'Este usuario ya es parte del equipo.' });
+    }
+
+    // 3. Insert into team_members
+    const { error: insertError } = await supabaseAdmin.from('team_members').insert({
+      user_id: profile.id,
+      team_role: role,
+      permissions,
+      notes: notes || null,
+      invited_by: invitedByUserId,
+    });
+
+    if (insertError) {
+      return res.status(400).json({ error: `Error al agregar al equipo: ${insertError.message}` });
+    }
+
+    res.json({
+      success: true,
+      message: `${profile.full_name || email} ha sido agregado al equipo como ${role}.`,
+      userId: profile.id,
+    });
 
   } catch (err) {
     res.status(500).json({ error: err.message || 'Error interno del servidor.' });

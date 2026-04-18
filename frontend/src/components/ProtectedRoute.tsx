@@ -150,6 +150,11 @@ const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
     return <EmailConfirmGate email={user.email || ''} />;
   }
 
+  // Team members pertenecen al panel backend — nunca a dashboards de usuario
+  if ((role === 'cliente' || role === 'asesor') && teamMember?.is_active) {
+    return <Navigate to="/dashboard/admin" replace />;
+  }
+
   if (role && profile?.role !== role) {
     // Admins can access any protected route
     if (profile?.is_admin) return <>{children}</>;
