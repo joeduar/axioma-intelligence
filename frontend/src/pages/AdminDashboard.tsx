@@ -530,6 +530,12 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [advisorPaymentHistory, setAdvisorPaymentHistory] = useState<any[]>([]);
+  const [payoutSubTab, setPayoutSubTab] = useState<'pending' | 'history'>('pending');
+  const [markPaidModal, setMarkPaidModal] = useState<any | null>(null);
+  const [markPaidForm, setMarkPaidForm] = useState({ reference: '', notes: '', payment_method: '' });
+  const [markingPaid, setMarkingPaid] = useState(false);
   const [settings, setSettings] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [searchUser, setSearchUser] = useState('');
@@ -598,6 +604,8 @@ export default function AdminDashboard() {
       loadUsers(),
       loadSessions(),
       loadPayouts(),
+      loadWallets(),
+      loadAdvisorPaymentHistory(),
       loadSettings(),
       loadChartData(),
       loadTeamMembers(),
@@ -678,6 +686,91 @@ export default function AdminDashboard() {
       .order('created_at', { ascending: false })
       .limit(50);
     setPayouts(data || []);
+  };
+
+  const loadWallets = async () => {
+    const { data } = await supabase
+      .from('advisor_wallet')
+      .select('*, advisors!advisor_id(user_id, commission_rate, profiles(full_name, email, avatar_url))')
+      .order('balance_pending', { ascending: false });
+    setWallets(data || []);
+  };
+
+  const loadAdvisorPaymentHistory = async () => {
+    const { data } = await supabase
+      .from('advisor_payments')
+      .select('*, advisors!advisor_id(profiles(full_name, email))')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    setAdvisorPaymentHistory(data || []);
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!markPaidModal) return;
+    setMarkingPaid(true);
+    const wallet = markPaidModal;
+    const now = new Date();
+    const day = now.getDate();
+    const cycleStart = new Date(now.getFullYear(), now.getMonth(), day <= 15 ? 1 : 16);
+    const cycleEnd = day <= 15
+      ? new Date(now.getFullYear(), now.getMonth(), 15)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const { error: insertErr } = await supabase.from('advisor_payments').insert({
+      advisor_id: wallet.advisor_id,
+      amount: wallet.balance_pending,
+      payment_method: markPaidForm.payment_method || wallet.payment_method || 'manual',
+      reference: markPaidForm.reference || null,
+      notes: markPaidForm.notes || null,
+      status: 'procesado',
+      cycle_start: cycleStart.toISOString().split('T')[0],
+      cycle_end: cycleEnd.toISOString().split('T')[0],
+      processed_at: new Date().toISOString(),
+    });
+
+    if (!insertErr) {
+      await supabase.from('advisor_wallet').update({
+        total_paid: wallet.total_paid + wallet.balance_pending,
+        balance_pending: 0,
+        updated_at: new Date().toISOString(),
+      }).eq('id', wallet.id);
+
+      // Notify the advisor
+      if (wallet.advisors?.user_id) {
+        await supabase.from('notifications').insert({
+          user_id: wallet.advisors.user_id,
+          message: `Tu pago de $${Number(wallet.balance_pending).toFixed(2)} ha sido procesado. Referencia: ${markPaidForm.reference || 'N/A'}`,
+          type: 'pago',
+          read: false,
+        });
+      }
+      setMarkPaidModal(null);
+      setMarkPaidForm({ reference: '', notes: '', payment_method: '' });
+      loadWallets();
+      loadAdvisorPaymentHistory();
+    }
+    setMarkingPaid(false);
+  };
+
+  const exportWalletsCSV = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const rows = [
+      ['Asesor', 'Email', 'Balance Pendiente', 'Total Ganado', 'Total Pagado', 'Método de Pago'],
+      ...wallets.map(w => [
+        w.advisors?.profiles?.full_name || '',
+        w.advisors?.profiles?.email || '',
+        Number(w.balance_pending).toFixed(2),
+        Number(w.total_earned).toFixed(2),
+        Number(w.total_paid).toFixed(2),
+        w.payment_method || 'No configurado',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `pagos-asesores-${today}.csv`;
+    a.click();
   };
 
   const loadSettings = async () => {
@@ -1409,72 +1502,160 @@ export default function AdminDashboard() {
           )}
 
           {/* ══ PAYOUTS ═══════════════════════════════════════ */}
-          {activeTab === 'payouts' && (
+          {activeTab === 'payouts' && (() => {
+            const today = new Date();
+            const day = today.getDate();
+            const cycleStart = new Date(today.getFullYear(), today.getMonth(), day <= 15 ? 1 : 16);
+            const cycleEnd = day <= 15
+              ? new Date(today.getFullYear(), today.getMonth(), 15)
+              : new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const fmtDate = (d: Date) => d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+            const totalPending = wallets.reduce((a, w) => a + Number(w.balance_pending), 0);
+            const totalLifetime = advisorPaymentHistory.filter(p => p.status === 'procesado').reduce((a, p) => a + Number(p.amount), 0);
+
+            return (
             <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white">Pagos a Asesores</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Ciclo actual: {fmtDate(cycleStart)} — {fmtDate(cycleEnd)}</p>
+                </div>
+                <button onClick={exportWalletsCSV}
+                  className="flex items-center gap-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-white/10 transition-all">
+                  <Download size={13} /> Exportar CSV
+                </button>
+              </div>
+
               {/* Summary cards */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl p-5">
-                  <p className="text-xs text-gray-400 mb-2">Total pagado a asesores</p>
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">
-                    ${payouts.filter(p => p.status === 'completed').reduce((a, p) => a + Number(p.net_amount), 0).toFixed(2)}
-                  </p>
+                  <p className="text-xs text-gray-400 mb-1">Pendiente de pago</p>
+                  <p className="text-2xl font-black text-amber-500">${totalPending.toFixed(2)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{wallets.filter(w => w.balance_pending > 0).length} asesores</p>
                 </div>
                 <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl p-5">
-                  <p className="text-xs text-gray-400 mb-2">Pendiente de procesar</p>
-                  <p className="text-2xl font-black text-amber-500">
-                    ${payouts.filter(p => p.status === 'pending').reduce((a, p) => a + Number(p.net_amount), 0).toFixed(2)}
-                  </p>
+                  <p className="text-xs text-gray-400 mb-1">Total pagado (histórico)</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">${totalLifetime.toFixed(2)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{advisorPaymentHistory.filter(p => p.status === 'procesado').length} pagos</p>
                 </div>
                 <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl p-5">
-                  <p className="text-xs text-gray-400 mb-2">Comisiones retenidas</p>
+                  <p className="text-xs text-gray-400 mb-1">Comisiones Axioma (15%)</p>
                   <p className="text-2xl font-black text-emerald-500">
-                    ${(stats.totalRevenue * 0.2).toFixed(2)}
+                    ${(wallets.reduce((a, w) => a + Number(w.total_earned), 0) / 0.85 * 0.15).toFixed(2)}
                   </p>
+                  <p className="text-xs text-gray-400 mt-1">Acumulado histórico</p>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">Historial de Pagos a Asesores</h3>
-                </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100 dark:border-white/10">
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">Asesor</th>
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Bruto</th>
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Comisión (20%)</th>
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Neto</th>
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Período</th>
-                      <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                    {payouts.map(p => (
-                      <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                          {p.profiles?.full_name || 'Asesor'}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-600 dark:text-white/70">${Number(p.gross_amount).toFixed(2)}</td>
-                        <td className="px-4 py-4 text-sm text-red-400">-${Number(p.commission_amount).toFixed(2)}</td>
-                        <td className="px-4 py-4 text-sm font-bold text-emerald-500">${Number(p.net_amount).toFixed(2)}</td>
-                        <td className="px-4 py-4 text-xs text-gray-400">
-                          {p.period_start} — {p.period_end}
-                        </td>
-                        <td className="px-4 py-4"><StatusBadge status={p.status} /></td>
-                      </tr>
-                    ))}
-                    {payouts.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="text-center py-12 text-sm text-gray-400">
-                          No hay pagos registrados
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              {/* Sub-tabs */}
+              <div className="flex gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1 w-fit">
+                {(['pending', 'history'] as const).map(t => (
+                  <button key={t} onClick={() => setPayoutSubTab(t)}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${payoutSubTab === t ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/60'}`}>
+                    {t === 'pending' ? `Pendientes (${wallets.filter(w => w.balance_pending > 0).length})` : 'Historial'}
+                  </button>
+                ))}
               </div>
+
+              {/* Pending wallets table */}
+              {payoutSubTab === 'pending' && (
+                <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-white/10">
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">Asesor</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Balance pendiente</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Total ganado</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Total pagado</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Método</th>
+                        <th className="px-4 py-4" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                      {wallets.filter(w => w.balance_pending > 0).map(w => (
+                        <tr key={w.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-500">
+                                {w.advisors?.profiles?.full_name?.[0]?.toUpperCase() || 'A'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{w.advisors?.profiles?.full_name || 'Asesor'}</p>
+                                <p className="text-xs text-gray-400">{w.advisors?.profiles?.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-sm font-black text-amber-500">${Number(w.balance_pending).toFixed(2)}</td>
+                          <td className="px-4 py-4 text-sm text-gray-600 dark:text-white/60">${Number(w.total_earned).toFixed(2)}</td>
+                          <td className="px-4 py-4 text-sm text-gray-600 dark:text-white/60">${Number(w.total_paid).toFixed(2)}</td>
+                          <td className="px-4 py-4 text-xs text-gray-400 capitalize">{w.payment_method || '—'}</td>
+                          <td className="px-4 py-4">
+                            {can('gestionar_pagos') && (
+                              <button onClick={() => { setMarkPaidModal(w); setMarkPaidForm({ reference: '', notes: '', payment_method: w.payment_method || '' }); }}
+                                className="flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-emerald-600 transition-all">
+                                <Check size={12} /> Marcar pagado
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {wallets.filter(w => w.balance_pending > 0).length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="text-center py-12">
+                            <CheckCircle size={28} className="text-emerald-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-400">Todos los asesores están al día</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Payment history */}
+              {payoutSubTab === 'history' && (
+                <div className="bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-white/10">
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">Asesor</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Monto</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Ciclo</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Método</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Referencia</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Fecha</th>
+                        <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-4 py-4">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                      {advisorPaymentHistory.map(p => (
+                        <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-all">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                            {p.advisors?.profiles?.full_name || 'Asesor'}
+                          </td>
+                          <td className="px-4 py-4 text-sm font-bold text-emerald-500">${Number(p.amount).toFixed(2)}</td>
+                          <td className="px-4 py-4 text-xs text-gray-400">{p.cycle_start} — {p.cycle_end}</td>
+                          <td className="px-4 py-4 text-xs text-gray-400 capitalize">{p.payment_method || '—'}</td>
+                          <td className="px-4 py-4 text-xs text-gray-400">{p.reference || '—'}</td>
+                          <td className="px-4 py-4 text-xs text-gray-400">
+                            {p.processed_at ? new Date(p.processed_at).toLocaleDateString('es-ES') : '—'}
+                          </td>
+                          <td className="px-4 py-4"><StatusBadge status={p.status} /></td>
+                        </tr>
+                      ))}
+                      {advisorPaymentHistory.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="text-center py-12 text-sm text-gray-400">Sin historial de pagos</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ══ TEAM ══════════════════════════════════════════ */}
           {activeTab === 'team' && (
@@ -1942,6 +2123,61 @@ export default function AdminDashboard() {
           onClose={() => setSelectedVerif(null)}
           onDecision={handleVerificationDecision}
         />
+      )}
+
+      {/* Mark as Paid Modal */}
+      {markPaidModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0f1629] border border-gray-200 dark:border-white/10 rounded-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10">
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">Registrar pago</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{markPaidModal.advisors?.profiles?.full_name}</p>
+              </div>
+              <button onClick={() => setMarkPaidModal(null)} className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/20 transition-all">
+                <X size={15} className="text-gray-500 dark:text-white/60" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Amount summary */}
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-4 text-center">
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Monto a pagar</p>
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">${Number(markPaidModal.balance_pending).toFixed(2)}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Método de pago</label>
+                <select value={markPaidForm.payment_method} onChange={e => setMarkPaidForm(p => ({ ...p, payment_method: e.target.value }))}
+                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                  <option value="">Seleccionar...</option>
+                  <option value="bank_transfer">Transferencia bancaria</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="paypal">PayPal</option>
+                  <option value="cash">Efectivo</option>
+                  <option value="crypto">Cripto</option>
+                  <option value="manual">Manual / Otro</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Referencia / ID de transacción</label>
+                <input value={markPaidForm.reference} onChange={e => setMarkPaidForm(p => ({ ...p, reference: e.target.value }))}
+                  placeholder="REF-12345 o número de transacción..."
+                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-white/50 mb-1.5">Notas (opcional)</label>
+                <textarea value={markPaidForm.notes} onChange={e => setMarkPaidForm(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="Detalles adicionales del pago..."
+                  rows={2}
+                  className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 resize-none" />
+              </div>
+              <button onClick={handleMarkAsPaid} disabled={markingPaid}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm hover:bg-emerald-600 transition-all disabled:opacity-60">
+                {markingPaid ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                {markingPaid ? 'Procesando...' : 'Confirmar pago'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
