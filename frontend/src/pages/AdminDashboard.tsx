@@ -721,11 +721,17 @@ export default function AdminDashboard() {
   };
 
   const loadTeamMembers = async () => {
-    const { data } = await supabase
-      .from('team_members')
-      .select('*, profiles(full_name, email, avatar_url, role)')
-      .order('created_at', { ascending: false });
-    setTeamMembers(data || []);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/team-members`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTeamMembers(data.members || []);
+      }
+    } catch {
+      // backend not running locally — silently skip
+    }
   };
 
   const loadTickets = async () => {

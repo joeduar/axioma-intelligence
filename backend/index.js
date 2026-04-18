@@ -139,6 +139,50 @@ app.post('/api/admin/create-team-member', async (req, res) => {
   }
 });
 
+// ── LIST TEAM MEMBERS ────────────────────────────────────────────
+// GET /api/admin/team-members
+// Protected by admin JWT OR active team member JWT
+app.get('/api/admin/team-members', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Backend no configurado.' });
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token de autorización requerido.' });
+  }
+
+  try {
+    const token = authHeader.slice(7);
+    const { data: userData, error: jwtError } = await supabaseAdmin.auth.getUser(token);
+    if (jwtError || !userData?.user?.id) {
+      return res.status(401).json({ error: 'Token inválido.' });
+    }
+    const callerId = userData.user.id;
+    const [{ data: prof }, { data: tm }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('is_admin').eq('id', callerId).single(),
+      supabaseAdmin.from('team_members').select('id, is_active').eq('user_id', callerId).eq('is_active', true).maybeSingle(),
+    ]);
+    if (!prof?.is_admin && !tm?.id) {
+      return res.status(403).json({ error: 'No autorizado.' });
+    }
+  } catch (e) {
+    return res.status(401).json({ error: 'Error verificando autorización.' });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('team_members')
+      .select('*, profiles!team_members_user_id_fkey(full_name, email, avatar_url, role)')
+      .order('created_at', { ascending: false });
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ members: data || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Error interno.' });
+  }
+});
+
 // ── ADD EXISTING USER TO TEAM ────────────────────────────────────
 // POST /api/admin/add-existing-to-team
 // Body: { email, teamRole, notes? }
