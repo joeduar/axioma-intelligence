@@ -1,0 +1,183 @@
+{
+  "name": "Axioma — Ciclo de Pagos Bisemanal",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0,
+              "triggerAtDay": [1, 15]
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule — Días 1 y 15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://bcwsygdipoyrhonzqyvg.supabase.co/rest/v1/advisor_wallet",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "*,advisors!advisor_id(user_id,commission_rate,profiles(full_name,email,avatar_url))" },
+            { "name": "balance_pending", "value": "gt.0" },
+            { "name": "order", "value": "balance_pending.desc" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$credentials.value}}" },
+            { "name": "Authorization", "value": "Bearer ={{$credentials.value}}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-wallets",
+      "name": "Supabase — Wallets pendientes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "supabase-anon-key",
+          "name": "Supabase Anon Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-has-wallets",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-has-pending",
+      "name": "¿Hay pagos pendientes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const wallets = $input.all().map(item => item.json);\nconst today = new Date();\nconst day = today.getDate();\nconst year = today.getFullYear();\nconst month = today.getMonth();\n\n// Calculate billing cycle\nconst cycleStart = day <= 15\n  ? new Date(year, month, 1).toISOString().split('T')[0]\n  : new Date(year, month, 16).toISOString().split('T')[0];\n\nconst cycleEnd = day <= 15\n  ? new Date(year, month, 15).toISOString().split('T')[0]\n  : new Date(year, month + 1, 0).toISOString().split('T')[0];\n\nconst totalPending = wallets.reduce((sum, w) => sum + parseFloat(w.balance_pending || 0), 0);\n\n// Build advisor_payments records to insert\nconst paymentRecords = wallets.map(w => ({\n  advisor_id: w.advisor_id,\n  amount: parseFloat(w.balance_pending),\n  payment_method: w.payment_method || 'pendiente',\n  status: 'pendiente',\n  cycle_start: cycleStart,\n  cycle_end: cycleEnd,\n  notes: `Ciclo generado automáticamente por n8n — ${cycleStart} al ${cycleEnd}`\n}));\n\n// Build email summary rows\nconst rows = wallets.map(w => {\n  const name = w.advisors?.profiles?.full_name || 'Asesor desconocido';\n  const email = w.advisors?.profiles?.email || '';\n  const amount = parseFloat(w.balance_pending).toFixed(2);\n  return `<tr>\n    <td style=\"padding:8px 12px;border-bottom:1px solid #f0f0f0\">${name}</td>\n    <td style=\"padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#6b7280\">${email}</td>\n    <td style=\"padding:8px 12px;border-bottom:1px solid #f0f0f0;font-weight:bold;color:#10b981\">$${amount}</td>\n    <td style=\"padding:8px 12px;border-bottom:1px solid #f0f0f0;color:#6b7280;text-transform:capitalize\">${w.payment_method || '—'}</td>\n  </tr>`;\n}).join('');\n\nreturn [{\n  json: {\n    cycleStart,\n    cycleEnd,\n    totalPending: totalPending.toFixed(2),\n    advisorCount: wallets.length,\n    paymentRecords,\n    emailRows: rows\n  }\n}];\n"
+      },
+      "id": "build-report",
+      "name": "Code — Construir reporte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bcwsygdipoyrhonzqyvg.supabase.co/rest/v1/advisor_payments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$credentials.value}}" },
+            { "name": "Authorization", "value": "Bearer ={{$credentials.value}}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json.paymentRecords) }}",
+        "options": {}
+      },
+      "id": "insert-payments",
+      "name": "Supabase — Insertar registros de pago",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "supabase-service-role",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@axioma.com",
+        "toEmail": "rolandoaf5@gmail.com",
+        "subject": "=Axioma — Ciclo de pagos {{ $('build-report').item.json.cycleStart }} al {{ $('build-report').item.json.cycleEnd }}",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; margin: 0; padding: 24px; }\n    .card { background: #fff; border-radius: 12px; padding: 32px; max-width: 600px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,.08); }\n    .logo { font-size: 18px; font-weight: 900; letter-spacing: .15em; color: #0a0e27; }\n    .logo span { color: #10b981; }\n    .stat { display: inline-block; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 20px; margin: 8px 4px; text-align: center; }\n    .stat-value { font-size: 24px; font-weight: 900; color: #059669; }\n    .stat-label { font-size: 11px; color: #6b7280; margin-top: 2px; }\n    table { width: 100%; border-collapse: collapse; margin-top: 20px; }\n    th { text-align: left; padding: 10px 12px; background: #f9fafb; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; }\n    .btn { display: inline-block; background: #10b981; color: #fff; font-weight: 700; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px; }\n    .footer { font-size: 11px; color: #9ca3af; margin-top: 24px; text-align: center; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <p class=\"logo\">AXIOMA <span>VENTURES</span></p>\n    <h2 style=\"margin-top:20px;color:#111\">Resumen de pagos pendientes</h2>\n    <p style=\"color:#6b7280\">Ciclo: <strong>{{ $('build-report').item.json.cycleStart }}</strong> al <strong>{{ $('build-report').item.json.cycleEnd }}</strong></p>\n    \n    <div style=\"margin:20px 0\">\n      <div class=\"stat\">\n        <div class=\"stat-value\">${{ $('build-report').item.json.totalPending }}</div>\n        <div class=\"stat-label\">Total pendiente</div>\n      </div>\n      <div class=\"stat\">\n        <div class=\"stat-value\" style=\"color:#3b82f6\">{{ $('build-report').item.json.advisorCount }}</div>\n        <div class=\"stat-label\">Asesores</div>\n      </div>\n    </div>\n\n    <table>\n      <thead>\n        <tr>\n          <th>Asesor</th>\n          <th>Email</th>\n          <th>Monto</th>\n          <th>Método</th>\n        </tr>\n      </thead>\n      <tbody>\n        {{ $('build-report').item.json.emailRows }}\n      </tbody>\n    </table>\n\n    <p style=\"margin-top:24px;color:#6b7280;font-size:13px\">\n      Los registros de pago han sido creados en el sistema con estado <strong>pendiente</strong>.\n      Ingresa al panel de admin para procesarlos.\n    </p>\n\n    <a href=\"https://axioma-intelligence.vercel.app/dashboard/admin\" class=\"btn\">Ir al panel de admin</a>\n\n    <p class=\"footer\">Axioma Ventures Intelligence &mdash; Notificación automática</p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Email — Notificar admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1440, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-axioma",
+          "name": "SMTP Axioma"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-pending",
+      "name": "Sin pagos pendientes",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [960, 440]
+    }
+  ],
+  "connections": {
+    "Schedule — Días 1 y 15": {
+      "main": [[{ "node": "Supabase — Wallets pendientes", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Wallets pendientes": {
+      "main": [[{ "node": "¿Hay pagos pendientes?", "type": "main", "index": 0 }]]
+    },
+    "¿Hay pagos pendientes?": {
+      "main": [
+        [{ "node": "Code — Construir reporte", "type": "main", "index": 0 }],
+        [{ "node": "Sin pagos pendientes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code — Construir reporte": {
+      "main": [[{ "node": "Supabase — Insertar registros de pago", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Insertar registros de pago": {
+      "main": [[{ "node": "Email — Notificar admin", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": [{ "name": "axioma" }, { "name": "pagos" }],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
